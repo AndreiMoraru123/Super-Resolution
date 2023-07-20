@@ -14,8 +14,8 @@ from dataset import create_dataset
 @pytest.fixture(name="json_path")
 def json_data(tmpdir) -> str:
     """Temporary JSON data folders."""
-    json_data = ["image1.jpg", "image2.jpg", "image3.jpg"]
 
+    json_data = ["image1.jpg", "image2.jpg", "image3.jpg"]
     train_json = tmpdir.join("train_images.json")
     test_json = tmpdir.join("dummy_test_images.json")
 
@@ -30,6 +30,8 @@ def json_data(tmpdir) -> str:
 
 @pytest.fixture(name="config")
 def dataset_config(json_path):
+    """Configuration parameters for creating the Dataset."""
+
     config = {
         'data_folder': json_path,
         "split": "test",
@@ -44,6 +46,8 @@ def dataset_config(json_path):
 
 @patch("PIL.Image.open")
 def test_dataset_creation(mock_img_open, config):
+    """Test Dataset creation with mocked paths and image."""
+
     # Mock image object
     mock_img = Image.new(mode='RGB', size=(150, 150))
     # Cannot crop a larger patch from a smaller image
