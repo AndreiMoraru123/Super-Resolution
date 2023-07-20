@@ -6,6 +6,7 @@ from typing import Tuple, Union
 import numpy as np
 import tensorflow as tf  # type: ignore
 from PIL import Image  # type: ignore
+from einops import rearrange
 
 
 class ImageTransform(object):
@@ -21,12 +22,14 @@ class ImageTransform(object):
         :param lr_img_type: the target format for the LR image; see convert_image method below for available formats
         :param hr_img_type: the target format for the HR image; see convert_image method below for available formats
         """
+
         self.split = split.lower()
         self.crop_size = crop_size
         self.scaling_factor = scaling_factor
         self.lr_img_type = lr_img_type
         self.hr_img_type = hr_img_type
         self.rgb_weights = tf.constant([65.481, 128.553, 24.966], dtype=tf.float32)
+
         # CHW
         self.imagenet_mean_cpu = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)[:, None, None]
         self.imagenet_std_cpu = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)[:, None, None]
@@ -52,6 +55,7 @@ class ImageTransform(object):
                        'y-channel' (luminance channel Y in the YCbCr color format, used to calculate PSNR and SSIM)
         :return: converted image
         """
+
         assert source in {'pil', '[0, 1]', '[-1, 1]'}, "Cannot convert from source format %s!" % source
         assert target in {'pil', '[0, 255]', '[0, 1]', '[-1, 1]', 'imagenet-norm',
                           'y-channel'}, "Cannot convert to target format %s!" % target
@@ -63,6 +67,7 @@ class ImageTransform(object):
             pass
         elif source == '[-1, 1]':
             img = (img + 1.) / 2.
+
         # Convert from [0, 1] to target
         if target == 'pil':
             img = tf.keras.preprocessing.image.array_to_img(img)
@@ -74,13 +79,13 @@ class ImageTransform(object):
             img = 2. * img - 1
         elif target == 'imagenet-norm':
             if len(img.shape) == 3:
-                img = tf.transpose(img, [2, 0, 1])  # change to NCHW format
+                img = rearrange(img, 'h w c -> c h w')  # move to channel first
                 img = (img - self.imagenet_mean_cpu) / self.imagenet_std_cpu
-                img = tf.transpose(img, [1, 2, 0])  # change back to NHWC format
+                img = rearrange(img, 'c h w -> h w c')  # back to channel last
             elif len(img.shape) == 4:
-                img = tf.transpose(img, [0, 3, 1, 2])  # change to NCHW format
-                img = (img - self.imagenet_mean_cpu) / self.imagenet_std_cpu
-                img = tf.transpose(img, [0, 2, 3, 1])  # change back to NHWC format
+                img = rearrange(img, 'n h w c -> n c h w')  # move to channel first
+                img = (img - self.imagenet_mean) / self.imagenet_std
+                img = rearrange(img, 'n c h w -> n h w c')  # back to channel last
         elif target == 'y_channel':
             img = tf.tensordot(img[:, 4:-4, 4:-4, :] * 255, self.rgb_weights, axes=[[3], [0]]) / 255. + 16.
 
