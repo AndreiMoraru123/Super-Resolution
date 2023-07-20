@@ -59,7 +59,7 @@ def test_dataset_creation(mock_img_open, config):
     mock_img_open.return_value = mock_img
     # Create Dataset from config
     dataset = create_dataset(**config)
-    # "image1.jpg", "image2.jpg", "image3.jpg"]
+    # "image1.jpg", "image2.jpg", "image3.jpg"
     assert len(list(dataset.as_numpy_iterator())) == 3
     # assert data content
     for lr_img, hr_img in dataset:
