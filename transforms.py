@@ -18,8 +18,8 @@ class ImageTransform(object):
         :param split: one of 'train' or 'test'
         :param crop_size: crop size of HR images
         :param scaling_factor: LR images will be down-sampled from the HR images by this factor
-        :param lr_img_type: the target format for the LR image; see convert_image() above for available formats
-        :param hr_img_type: the target format for the HR image; see convert_image() above for available formats
+        :param lr_img_type: the target format for the LR image; see convert_image method below for available formats
+        :param hr_img_type: the target format for the HR image; see convert_image method below for available formats
         """
         self.split = split.lower()
         self.crop_size = crop_size
