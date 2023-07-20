@@ -25,9 +25,9 @@ def create_dataset(
     :param data_folder: folder with JSON data files
     :param split: one of 'train' or 'test'
     :param crop_size: crop size of target HR images
-    :param scaling_factor: the input LR images will be downsampled from the target HR images by this factor; the scaling done in the super-resolution
-    :param lr_img_type: the format for the LR image supplied to the model; see convert_image() in utils.py for available formats
-    :param hr_img_type: the format for the HR image supplied to the model; see convert_image() in utils.py for available formats
+    :param scaling_factor: the input LR images will be down-sampled from the target HR images by this factor
+    :param lr_img_type: the format for the LR image supplied to the model
+    :param hr_img_type: the format for the HR image supplied to the model
     :param test_data_name: if this is the 'test' split, which test dataset? (for example, "Set14")
     """
     assert split in {'train', 'test'}
