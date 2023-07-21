@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf  # type: ignore
 
 # module imports
-from model import ConvolutionalBlock, SubPixelConvolutionalBlock, ResidualBlock
+from model import ConvolutionalBlock, SubPixelConvolutionalBlock, ResidualBlock, SuperResolutionResNet
 
 
 @pytest.fixture(
@@ -49,6 +49,20 @@ def residual_block_params(request):
     return request.param
 
 
+@pytest.fixture(
+    params=
+    [
+        (9, 3, 64, 16, 2),
+        (9, 3, 64, 16, 4),
+        (9, 3, 64, 16, 8),
+        (8, 5, 64, 16, 4),
+    ]
+)
+def sr_resnet_params(request):
+    """Residual Block initialization params"""
+    return request.param
+
+
 def test_conv_block_output_shape(conv_block_params):
     in_channels, out_channels, kernel_size, stride, batch_norm, activation = conv_block_params
     conv_block = ConvolutionalBlock(in_channels=in_channels, out_channels=out_channels,
@@ -75,3 +89,13 @@ def test_residual_block_output_shape(residual_block_params):
     dummy_input = tf.random.uniform((2, 128, 128, n_channels))
     output = residual_block(dummy_input)
     assert output.shape == dummy_input.shape
+
+
+def test_sr_resnet_output_shape(sr_resnet_params):
+    large_kernel_size, small_kernel_size, n_channels, n_blocks, scaling_factor = sr_resnet_params
+    sr_resnet = SuperResolutionResNet(large_kernel_size=large_kernel_size, small_kernel_size=small_kernel_size,
+                                      n_channels=n_channels, n_blocks=n_blocks, scaling_factor=scaling_factor)
+    dummy_input = tf.random.uniform((2, 16, 16, 3))
+    output = sr_resnet(dummy_input)
+    assert output.shape == (2, 16 * scaling_factor, 16 * scaling_factor, 3)
+

@@ -1,10 +1,10 @@
 # standard imports
+import math
 from typing import List, Optional
 
 # third-party imports
 import tensorflow as tf  # type: ignore
-from tensorflow.keras import layers  # type: ignore
-from tensorflow.keras import Model  # type: ignore
+from tensorflow.keras import layers, Model  # type: ignore
 
 
 class ConvolutionalBlock(layers.Layer):
@@ -133,3 +133,65 @@ class ResidualBlock(layers.Layer):
         output += inputs
 
         return output
+
+
+class SuperResolutionResNet(Model):
+    """Super Resolution ResNet"""
+
+    def __init__(
+        self,
+        large_kernel_size: int = 9,
+        small_kernel_size: int = 3,
+        n_channels: int = 64,
+        n_blocks: int = 16,
+        scaling_factor: int = 4,
+        **kwargs
+    ):
+        """
+        Initializes the Super Resolution Resnet
+        :param large_kernel_size: kernel size of the first and last convolutions which transform the inputs and outputs
+        :param small_kernel_size: kernel size of all convolutions in-between (residual & subpixel convolutional blocks)
+        :param n_channels: number of channels in-between, input and output channels for residual & subpixel conv blocks
+        :param n_blocks: number of residual blocks
+        :param scaling_factor: factor to scale input images by (along both dimensions) in the subpixel conv block
+        """
+        super().__init__(**kwargs)
+        assert scaling_factor in {2, 4, 8}, "The scaling factor must be 2, 4, or 8!"
+
+        self.conv_block1 = ConvolutionalBlock(in_channels=3, out_channels=n_channels,
+                                              kernel_size=large_kernel_size, batch_norm=False,
+                                              activation='prelu')
+        self.residual_blocks = tf.keras.Sequential(
+            [ResidualBlock(kernel_size=small_kernel_size, n_channels=n_channels) for _ in range(n_blocks)]
+        )
+        self.conv_block2 = ConvolutionalBlock(in_channels=n_channels, out_channels=n_channels,
+                                              kernel_size=small_kernel_size, batch_norm=False,
+                                              activation=None)
+
+        n_subpixel_conv_blocks = int(math.log2(scaling_factor))
+        # up-scaling by a factor of 2 (so squaring)
+        self.subpixel_conv_blocks = tf.keras.Sequential(
+            [SubPixelConvolutionalBlock(kernel_size=small_kernel_size, n_channels=n_channels, scaling_factor=2) for _
+            in range(n_subpixel_conv_blocks)]
+        )
+        self.conv_block3 = ConvolutionalBlock(in_channels=n_channels, out_channels=3,
+                                              kernel_size=large_kernel_size, batch_norm=False,
+                                              activation='tanh')
+
+    def call(self, low_res_images: tf.Tensor, training: bool = False) -> tf.Tensor:
+        """
+        Forward pass.
+
+        :param low_res_images: low resolution input images, a Tensor of shape (N, w, h, 3)
+        :param training: whether the layer is in training mode or not
+        :return:
+        """
+        output = self.conv_block1(low_res_images, training=training)
+        residual = output
+        output = self.residual_blocks(output, training=training)
+        output = self.conv_block2(output, training=training)
+        output = output + residual
+        output = self.subpixel_conv_blocks(output)
+        super_res_images = self.conv_block3(output, training=training)
+
+        return super_res_images
