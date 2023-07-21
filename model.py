@@ -41,18 +41,15 @@ class ConvolutionalBlock(layers.Layer):
 
         # PReLU and LeakyReLU have configurable parameters, so we can't just pass the strings to Keras
         if activation == 'prelu':
-            activation_layer = layers.PReLU()
+            self.activation_layer = layers.PReLU()
         elif activation == 'leakyrelu':
-            activation_layer = layers.LeakyReLU(0.2)
+            self.activation_layer = layers.LeakyReLU(0.2)
         elif activation == 'tanh':
-            activation_layer = tf.keras.activations.tanh
-        else:
-            activation_layer = None
+            self.activation_layer = layers.Activation(tf.keras.activations.tanh)
 
         # O = (W - K + 2P) / S + 1, so padding='same' is the same as padding = kernel_size // 2 and stride = 1
         blocks.append(layers.Conv2D(filters=out_channels, kernel_size=kernel_size, strides=stride,
-                                    padding='same', activation=activation_layer,
-                                    input_shape=(None, None, in_channels)))
+                                    padding='same', input_shape=(None, None, in_channels)))
 
         if batch_norm:
             blocks.append(layers.BatchNormalization())
@@ -69,6 +66,7 @@ class ConvolutionalBlock(layers.Layer):
         """
 
         output = self.conv_block(inputs, training=training)  # (N, W, H, out_channels)
-
+        if hasattr(self, 'activation_layer'):
+            output = self.activation_layer(output)
         return output
 

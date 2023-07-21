@@ -27,5 +27,5 @@ def test_conv_block_output_shape(conv_block_params):
                                     kernel_size=kernel_size, stride=stride,
                                     batch_norm=batch_norm, activation=activation)
     dummy_input = tf.random.uniform((2, 128, 128, in_channels))
-    out_channels = conv_block(dummy_input, training=False)
-    assert out_channels.shape == (2, 128, 128, out_channels)
+    output = conv_block(dummy_input, training=False)
+    assert output.shape == (2, 128, 128, out_channels)
