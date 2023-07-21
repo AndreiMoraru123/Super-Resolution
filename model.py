@@ -31,7 +31,7 @@ class ConvolutionalBlock(layers.Layer):
         :param activation: type of activation, optional, none by default
         """
 
-        super(ConvolutionalBlock, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         if activation is not None:
             activation = activation.lower()
@@ -70,3 +70,32 @@ class ConvolutionalBlock(layers.Layer):
             output = self.activation_layer(output)
         return output
 
+
+class SubPixelConvolutionalBlock(layers.Layer):
+    """Subpixel Conv Block mapping depth to space (pixel shuffling) with convolutional layers."""
+
+    def __init__(self, kernel_size=3, n_channels=64, scaling_factor=2, **kwargs):
+        """
+        Initializes the Sub Pixel Conv Block.
+
+        :param kernel_size: conv filter size
+        :param n_channels: number of both input and output channels
+        :param scaling_factor: factor to scale the input images by (along both dimensions)
+        """
+        super().__init__(**kwargs)
+        self.conv = layers.Conv2D(filters=n_channels * (scaling_factor ** 2),
+                                  kernel_size=kernel_size, padding='same')
+        self.scaling_factor = scaling_factor
+        self.prelu = layers.PReLU()
+
+    def call(self, inputs):
+        """
+        Forward pass
+
+        :param inputs: input images, a Tensor of shape (N, w, h, n_channels)
+        :return: scaled output images, a Tensor of shape (N, w * scaling_factor, h * scaling_factor, n_channels)
+        """
+        output = self.conv(inputs)  # (N, w, h, n_channels * scaling_factor)
+        output = tf.nn.depth_to_space(output, self.scaling_factor, data_format='NHWC')
+        output = self.prelu(output)
+        return output

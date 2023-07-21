@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf  # type: ignore
 
 # module imports
-from model import ConvolutionalBlock
+from model import ConvolutionalBlock, SubPixelConvolutionalBlock
 
 
 @pytest.fixture(
@@ -21,6 +21,20 @@ def conv_block_params(request):
     return request.param
 
 
+@pytest.fixture(
+    params=
+    [
+        (3, 64, 2),
+        (5, 32, 3),
+        (3, 128, 4),
+        (5, 256, 2),
+    ]
+)
+def subpixel_conv_block_params(request):
+    """Sub Pixel Convolutional Block initialization params"""
+    return request.param
+
+
 def test_conv_block_output_shape(conv_block_params):
     in_channels, out_channels, kernel_size, stride, batch_norm, activation = conv_block_params
     conv_block = ConvolutionalBlock(in_channels=in_channels, out_channels=out_channels,
@@ -29,3 +43,13 @@ def test_conv_block_output_shape(conv_block_params):
     dummy_input = tf.random.uniform((2, 128, 128, in_channels))
     output = conv_block(dummy_input, training=False)
     assert output.shape == (2, 128, 128, out_channels)
+
+
+def test_subpixel_conv_block_output_shape(subpixel_conv_block_params):
+    kernel_size, n_channels, scaling_factor = subpixel_conv_block_params
+    subpixel_conv_block = SubPixelConvolutionalBlock(kernel_size=kernel_size,
+                                                     n_channels=n_channels,
+                                                     scaling_factor=scaling_factor)
+    dummy_input = tf.random.uniform((2, 128, 128, n_channels))
+    output = subpixel_conv_block(dummy_input)
+    assert output.shape == (2, 128 * scaling_factor, 128 * scaling_factor, n_channels)
