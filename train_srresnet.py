@@ -26,7 +26,7 @@ start_epoch = 0  # start at this epoch
 epochs = 50  # number of training epochs
 workers = 4  # number of workers for loading data in the DataLoader
 print_freq = 500  # print training status once every __ batches
-lr = 1e-4  # learning rate
+lr = 1e-5  # learning rate
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 loss_fn = tf.keras.losses.MeanSquaredError()
@@ -34,7 +34,7 @@ loss_fn = tf.keras.losses.MeanSquaredError()
 tf.config.set_visible_devices([], 'GPU')
 
 
-# @tf.function
+@tf.function
 def train_step(low_res_images, high_res_images, model, optimizer, loss_fn) -> Loss:
     """
 
