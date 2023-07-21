@@ -74,7 +74,7 @@ class ConvolutionalBlock(layers.Layer):
 class SubPixelConvolutionalBlock(layers.Layer):
     """Subpixel Conv Block mapping depth to space (pixel shuffling) with convolutional layers."""
 
-    def __init__(self, kernel_size=3, n_channels=64, scaling_factor=2, **kwargs):
+    def __init__(self, kernel_size: int = 3, n_channels:int = 64, scaling_factor: int = 2, **kwargs):
         """
         Initializes the Sub Pixel Conv Block.
 
@@ -88,7 +88,7 @@ class SubPixelConvolutionalBlock(layers.Layer):
         self.scaling_factor = scaling_factor
         self.prelu = layers.PReLU()
 
-    def call(self, inputs):
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
         """
         Forward pass
 
@@ -98,4 +98,38 @@ class SubPixelConvolutionalBlock(layers.Layer):
         output = self.conv(inputs)  # (N, w, h, n_channels * scaling_factor)
         output = tf.nn.depth_to_space(output, self.scaling_factor, data_format='NHWC')
         output = self.prelu(output)
+        return output
+
+
+class ResidualBlock(layers.Layer):
+    """Two conv blocks stacked together with a residual connection across them."""
+
+    def __init__(self, kernel_size: int = 3, n_channels: int = 64, **kwargs):
+        """
+        Initializes the Residual Block.
+
+        :param kernel_size: conv filter size
+        :param n_channels: number of both input and output channels
+        """
+        super().__init__(**kwargs)
+        self.conv_block1 = ConvolutionalBlock(in_channels=n_channels, out_channels=n_channels,
+                                              kernel_size=kernel_size, batch_norm=True,
+                                              activation='prelu')
+        self.conv_block2 = ConvolutionalBlock(in_channels=n_channels, out_channels=n_channels,
+                                              kernel_size=kernel_size, batch_norm=True,
+                                              activation=None)
+
+    def call(self, inputs: tf.Tensor, training: bool = False) -> tf.Tensor:
+        """
+        Forward pass.
+
+        :param inputs: input images, a Tensor of shape (N, w, h , n_channels)
+        :param training: whether the layer is in training mode or not
+        :return: output images, a Tensor of shape (N, w, h, n_channels)
+        """
+
+        output = self.conv_block1(inputs, training=training)
+        output = self.conv_block2(output, training=training)
+        output += inputs
+
         return output
