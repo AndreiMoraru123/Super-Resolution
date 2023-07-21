@@ -12,8 +12,8 @@ from model import ConvolutionalBlock
     [
         (32, 64, 3, 1, False, None),
         (32, 64, 3, 1, True, 'prelu'),
-        (32, 64, 5, 2, False, 'leakyrelu'),
-        (32, 64, 5, 2, True, 'tanh'),
+        (32, 64, 5, 1, False, 'leakyrelu'),
+        (32, 64, 5, 1, True, 'tanh'),
     ]
 )
 def conv_block_params(request):
