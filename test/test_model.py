@@ -92,9 +92,9 @@ def discriminator_params(request):
     params=
     [
         (2, 1),
-        (5, 4),
-        (8, 7),
-        (9, 8)
+        (3, 2),
+        (4, 3),
+        (5, 4)
     ]
 )
 def vgg_indices(request):
