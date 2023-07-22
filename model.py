@@ -246,7 +246,7 @@ class Generator(Model):
 class Discriminator(Model):
     """Discriminator in the Super Resolution GAN."""
 
-    def __init__(self, kernel_size: int = 3, n_channels: int = 64, n_blocks: int = 3, fc_size: int = 1024):
+    def __init__(self, kernel_size: int = 3, n_channels: int = 64, n_blocks: int = 3, fc_size: int = 1024, **kwargs):
         """
 
         :param kernel_size: size of the filter in all convolutional blocks
@@ -254,7 +254,7 @@ class Discriminator(Model):
         :param n_blocks: number of convolutional blocks
         :param fc_size: size of the first fully connected layer
         """
-        super().__init__()
+        super().__init__(**kwargs)
 
         in_channels = 3  # RGB in the beginning
         # the even convolutional blocks increase the number of channels but retain image size
@@ -296,3 +296,52 @@ class Discriminator(Model):
         logit = self.fc2(output)  # (N, 1) as Keras retains the last dimension for convenience
         logit = tf.squeeze(logit, axis=-1)  # (N)
         return logit
+
+
+class TruncatedVGG19(Model):
+    """
+    A truncated VGG19 network, such that its output is the 'feature map obtained by the j-th convolution
+    (after activation) before the i-th max-pooling layer within the VGG19 network', as defined in the paper.
+
+    Used to calculate the MSE loss in this VGG feature-space, i.e. the VGG loss.
+    """
+
+    def __init__(self, i: int, j: int, **kwargs):
+        """
+        Initializing the Truncated VGG at the given indices.
+
+        :param i: the index i in the definition above
+        :param j: the index j in the definition above
+        """
+        super().__init__(**kwargs)
+
+        vgg19 = tf.keras.applications.VGG19(include_top=False)
+        maxpool_counter = 0
+        conv_counter = 0
+        truncate_at = None
+
+        for idx, layer in enumerate(vgg19.layers):
+            if isinstance(layer, layers.Conv2D):
+                conv_counter += 1
+            if isinstance(layer, layers.MaxPooling2D):
+                maxpool_counter +=1
+                conv_counter = 0
+
+            # Break if we reach the jth convolution after the (i-1)th max-pool
+            if maxpool_counter == i - 1 and conv_counter == j:
+                truncate_at = idx
+                break
+
+        assert truncate_at is not None, "One or both of i=%d and j=%d are not valid choices for the VGG19!" % (i, j)
+        # TensorFlow's extraction at [truncate_at] is inclusive unlike Python's exclusive
+        self.truncated_vgg19 = tf.keras.Model(vgg19.input, vgg19.layers[truncate_at].output)
+
+    def call(self, inputs: tf.Tensor) -> tf.Tensor:
+        """
+
+        :param inputs: high-resolution or super-resolution images which must be classified as such,
+            a Tensor of shape (N, w * scaling factor, h * scaling factor, 3)
+        :return: the specified VGG19 feature map, a tensor of size (N, feature_map_w, feature_map_h, n_channels)
+        """
+        output = self.truncated_vgg19(inputs)
+        return output

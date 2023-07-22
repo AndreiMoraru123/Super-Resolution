@@ -8,7 +8,8 @@ import tensorflow as tf  # type: ignore
 # module imports
 from model import (ConvolutionalBlock, SubPixelConvolutionalBlock,
                    ResidualBlock, SuperResolutionResNet,
-                   Generator, Discriminator)
+                   Generator, Discriminator,
+                   TruncatedVGG19)
 
 
 class MockTensor:
@@ -87,6 +88,20 @@ def discriminator_params(request):
     return request.param
 
 
+@pytest.fixture(
+    params=
+    [
+        (2, 1),
+        (5, 4),
+        (8, 7),
+        (9, 8)
+    ]
+)
+def vgg_indices(request):
+    """Parameters for the VGG indices i & j."""
+    return request.param
+
+
 def test_conv_block_output_shape(conv_block_params):
     """Conv Block forward pass to maintain the shape and change the number of channels."""
     in_channels, out_channels, kernel_size, stride, batch_norm, activation = conv_block_params
@@ -158,3 +173,16 @@ def test_discriminator_output_shape(discriminator_params):
     dummy_input = tf.random.uniform((2, 16 * 4, 16 * 4, 3))
     output = discriminator(dummy_input)
     assert tf.rank(output) == 1
+
+
+def test_truncated_vgg19_output(vgg_indices):
+    """Testing the Truncated VGG for feature extraction."""
+    i, j = vgg_indices
+    truncated_vgg19 = TruncatedVGG19(i, j)
+
+    dummy_input = tf.random.uniform((2, 224, 224, 3))
+    dummy_input = tf.keras.applications.vgg19.preprocess_input(dummy_input)
+
+    output = truncated_vgg19(dummy_input)
+    assert tf.rank(output) == tf.rank(dummy_input)
+    assert output.shape[0] == dummy_input.shape[0]
