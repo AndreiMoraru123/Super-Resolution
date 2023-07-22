@@ -74,7 +74,7 @@ class ConvolutionalBlock(layers.Layer):
 class SubPixelConvolutionalBlock(layers.Layer):
     """Subpixel Conv Block mapping depth to space (pixel shuffling) with convolutional layers."""
 
-    def __init__(self, kernel_size: int = 3, n_channels:int = 64, scaling_factor: int = 2, **kwargs):
+    def __init__(self, kernel_size: int = 3, n_channels: int = 64, scaling_factor: int = 2, **kwargs):
         """
         Initializes the Sub Pixel Conv Block.
 
@@ -148,7 +148,8 @@ class SuperResolutionResNet(Model):
         **kwargs
     ):
         """
-        Initializes the Super Resolution Resnet
+        Initializes the Super Resolution Resnet.
+
         :param large_kernel_size: kernel size of the first and last convolutions which transform the inputs and outputs
         :param small_kernel_size: kernel size of all convolutions in-between (residual & subpixel convolutional blocks)
         :param n_channels: number of channels in-between, input and output channels for residual & subpixel conv blocks
@@ -172,7 +173,7 @@ class SuperResolutionResNet(Model):
         # up-scaling by a factor of 2 (so squaring)
         self.subpixel_conv_blocks = tf.keras.Sequential(
             [SubPixelConvolutionalBlock(kernel_size=small_kernel_size, n_channels=n_channels, scaling_factor=2) for _
-            in range(n_subpixel_conv_blocks)]
+             in range(n_subpixel_conv_blocks)]
         )
         self.conv_block3 = ConvolutionalBlock(in_channels=n_channels, out_channels=3,
                                               kernel_size=large_kernel_size, batch_norm=False,
@@ -195,3 +196,103 @@ class SuperResolutionResNet(Model):
         super_res_images = self.conv_block3(output, training=training)
 
         return super_res_images
+
+
+class Generator(Model):
+    """The Super Resolution GAN (Generator), identical to Super Resolution Resnet"""
+
+    def __init__(
+        self,
+        large_kernel_size: int = 9,
+        small_kernel_size: int = 3,
+        n_channels: int = 64,
+        n_blocks: int = 16,
+        scaling_factor: int = 4,
+        **kwargs
+    ):
+        """
+        Initializes the Super Resolution Generator.
+
+        :param large_kernel_size: kernel size of the first and last convolutions which transform the inputs and outputs
+        :param small_kernel_size: kernel size of all convolutions in-between (residual & subpixel convolutional blocks)
+        :param n_channels: number of channels in-between, input and output channels for residual & subpixel conv blocks
+        :param n_blocks: number of residual blocks
+        :param scaling_factor: factor to scale input images by (along both dimensions) in the subpixel conv block
+        """
+        super().__init__(**kwargs)
+
+        self.net = SuperResolutionResNet(large_kernel_size=large_kernel_size, small_kernel_size=small_kernel_size,
+                                         n_channels=n_channels, n_blocks=n_blocks, scaling_factor=scaling_factor)
+
+    def initialize_with_srresnet(self, srresnet_checkpoint: Model):
+        """
+        Initialize with weights from a trained SRResNet.
+
+        :param srresnet_checkpoint: checkpoint filepath
+        """
+        self.net = tf.keras.models.load_model(srresnet_checkpoint)
+
+    def call(self, low_res_images: tf.Tensor, training: bool = False) -> tf.Tensor:
+        """
+        Forward pass of the Generator
+
+        :param low_res_images: low-resolution input images, a tensor of size (N, w, h, 3)
+        :return: super-resolution output images, a tensor of size (N, w * scaling factor, h * scaling factor, 3)
+        """
+        sr_images = self.net(low_res_images, training=training)
+        return sr_images
+
+
+class Discriminator(Model):
+    """Discriminator in the Super Resolution GAN."""
+
+    def __init__(self, kernel_size: int = 3, n_channels: int = 64, n_blocks: int = 3, fc_size: int = 1024):
+        """
+
+        :param kernel_size: size of the filter in all convolutional blocks
+        :param n_channels: number of output channels in the first convolutional block, double every second block after
+        :param n_blocks: number of convolutional blocks
+        :param fc_size: size of the first fully connected layer
+        """
+        super().__init__()
+
+        in_channels = 3  # RGB in the beginning
+        # the even convolutional blocks increase the number of channels but retain image size
+        # the odd convolutional blocks retain the number of channels but halve the image size
+        conv_blocks: List[layers.Layer] = []
+        for i in range(n_blocks):
+            out_channels = (n_channels if i == 0 else in_channels * 2) if i % 2 == 0 else in_channels
+            conv_blocks.append(
+                ConvolutionalBlock(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
+                                   stride=1 if i % 2 == 0 else 2, batch_norm=i != 0, activation='leakyrelu'))
+            in_channels = out_channels
+
+        self.conv_blocks = tf.keras.Sequential(conv_blocks)
+
+        self.average_pool = layers.AveragePooling2D(pool_size=(16, 16))  # 96 / 16 = 6 as the output size
+
+        self.flatten = layers.Flatten()
+
+        self.fc1 = layers.Dense(fc_size)
+
+        self.leaky_relu = layers.LeakyReLU(0.2)
+
+        self.fc2 = layers.Dense(1)
+
+    def call(self, images: tf.Tensor, training: bool = False) -> tf.Tensor:
+        """
+        Forward pass.
+
+        :param images: high-resolution or super-resolution images which must be classified as such,
+            a Tensor of shape (N, w * scaling factor, h * scaling factor, 3)
+        :param training: whether the layer is in training mode or not
+        :return: a score (logit) for whether it is a high-resolution image, a Tensor of shape (N)
+        """
+        output = self.conv_blocks(images, training=training)
+        output = self.average_pool(output)
+        output = self.flatten(output)
+        output = self.fc1(output)
+        output = self.leaky_relu(output)
+        logit = self.fc2(output)  # (N, 1) as Keras retains the last dimension for convenience
+        logit = tf.squeeze(logit, axis=-1)  # (N)
+        return logit

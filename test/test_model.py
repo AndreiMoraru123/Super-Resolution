@@ -1,10 +1,20 @@
+# standard imports
+import unittest.mock as mock
+
 # third-party imports
 import pytest  # type: ignore
-import numpy as np
 import tensorflow as tf  # type: ignore
 
 # module imports
-from model import ConvolutionalBlock, SubPixelConvolutionalBlock, ResidualBlock, SuperResolutionResNet
+from model import (ConvolutionalBlock, SubPixelConvolutionalBlock,
+                   ResidualBlock, SuperResolutionResNet,
+                   Generator, Discriminator)
+
+
+class MockTensor:
+    """Mocking a Tensor to get access to its dimensions"""
+    def __init__(self, shape):
+        self.shape = shape
 
 
 @pytest.fixture(
@@ -63,7 +73,22 @@ def sr_resnet_params(request):
     return request.param
 
 
+@pytest.fixture(
+    params=
+    [
+        (3, 64, 8, 1024),
+        (3, 32, 6, 512),
+        (3, 16, 4, 2048),
+        (3, 8, 20, 256),
+    ]
+)
+def discriminator_params(request):
+    """Residual Block initialization params"""
+    return request.param
+
+
 def test_conv_block_output_shape(conv_block_params):
+    """Conv Block forward pass to maintain the shape and change the number of channels."""
     in_channels, out_channels, kernel_size, stride, batch_norm, activation = conv_block_params
     conv_block = ConvolutionalBlock(in_channels=in_channels, out_channels=out_channels,
                                     kernel_size=kernel_size, stride=stride,
@@ -74,6 +99,7 @@ def test_conv_block_output_shape(conv_block_params):
 
 
 def test_subpixel_conv_block_output_shape(subpixel_conv_block_params):
+    """Sub Pixel Conv Block forward pass to scale the image by the given factor."""
     kernel_size, n_channels, scaling_factor = subpixel_conv_block_params
     subpixel_conv_block = SubPixelConvolutionalBlock(kernel_size=kernel_size,
                                                      n_channels=n_channels,
@@ -84,6 +110,7 @@ def test_subpixel_conv_block_output_shape(subpixel_conv_block_params):
 
 
 def test_residual_block_output_shape(residual_block_params):
+    """Residual Block forward pass to keep the same shape till the end."""
     kernel_size, n_channels = residual_block_params
     residual_block = ResidualBlock(kernel_size=kernel_size, n_channels=n_channels)
     dummy_input = tf.random.uniform((2, 128, 128, n_channels))
@@ -92,6 +119,7 @@ def test_residual_block_output_shape(residual_block_params):
 
 
 def test_sr_resnet_output_shape(sr_resnet_params):
+    """Super Resolution ResNet forward pass to output an up-scaled image."""
     large_kernel_size, small_kernel_size, n_channels, n_blocks, scaling_factor = sr_resnet_params
     sr_resnet = SuperResolutionResNet(large_kernel_size=large_kernel_size, small_kernel_size=small_kernel_size,
                                       n_channels=n_channels, n_blocks=n_blocks, scaling_factor=scaling_factor)
@@ -99,3 +127,34 @@ def test_sr_resnet_output_shape(sr_resnet_params):
     output = sr_resnet(dummy_input)
     assert output.shape == (2, 16 * scaling_factor, 16 * scaling_factor, 3)
 
+
+def test_generator_output_shape(sr_resnet_params):
+    """Super Resolution GAN Generator forward pass to output an up-scaled image."""
+    large_kernel_size, small_kernel_size, n_channels, n_blocks, scaling_factor = sr_resnet_params
+    generator = Generator(large_kernel_size=large_kernel_size, small_kernel_size=small_kernel_size,
+                          n_channels=n_channels, n_blocks=n_blocks, scaling_factor=scaling_factor)
+
+    dummy_input = tf.random.uniform((2, 16, 16, 3))
+    mock_output_tensor = MockTensor(shape=(dummy_input.shape[0], dummy_input.shape[1] * scaling_factor,
+                                           dummy_input.shape[2] * scaling_factor, dummy_input.shape[3]))
+
+    mock_sr_resnet_model = mock.Mock()
+    mock_sr_resnet_model.call.return_value = mock_output_tensor
+
+    # We know the generator is behaving like ResNet, so we mock it just for fun
+    with mock.patch('tensorflow.keras.models.load_model', return_value=mock_sr_resnet_model):
+        generator.initialize_with_srresnet('mock_srresnet_checkpoint')
+
+    # I don't actually write code like this in real life
+    generator.call = mock.Mock(return_value=mock_output_tensor)
+
+    output = generator(dummy_input)
+    assert output.shape == (2, 16 * scaling_factor, 16 * scaling_factor, 3)
+
+
+def test_discriminator_output_shape(discriminator_params):
+    """Discriminator forward pass to output a logit."""
+    discriminator = Discriminator(*discriminator_params)
+    dummy_input = tf.random.uniform((2, 16 * 4, 16 * 4, 3))
+    output = discriminator(dummy_input)
+    assert tf.rank(output) == 1

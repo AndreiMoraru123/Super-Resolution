@@ -79,7 +79,7 @@ def main():
             if i % print_freq == 0:
                 print(f'Epoch: [{epoch}][{i}/{epochs}]----'
                       f'Loss {loss:.4f}')
-        model.save_weights('checkpoint_srresnet.tf')
+    model.save('srresnet')
 
 
 if __name__ == "__main__":
