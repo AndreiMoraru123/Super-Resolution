@@ -269,7 +269,7 @@ class Discriminator(Model):
 
         self.conv_blocks = tf.keras.Sequential(conv_blocks)
 
-        self.average_pool = layers.AveragePooling2D(pool_size=(16, 16))  # 96 / 16 = 6 as the output size
+        self.average_pool = layers.AveragePooling2D(pool_size=(4, 4))
 
         self.flatten = layers.Flatten()
 

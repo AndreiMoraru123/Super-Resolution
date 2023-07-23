@@ -31,8 +31,8 @@ class ImageTransform(object):
         self.rgb_weights = tf.constant([65.481, 128.553, 24.966], dtype=tf.float32)
 
         # CHW
-        self.imagenet_mean_cpu = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)[:, None, None]
-        self.imagenet_std_cpu = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)[:, None, None]
+        self.imagenet_mean_cpu = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)[None, None, :]
+        self.imagenet_std_cpu = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)[None, None, :]
         # NHWC
         self.imagenet_mean = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)[None, None, None, :]
         self.imagenet_std = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)[None, None, None, :]
@@ -79,13 +79,9 @@ class ImageTransform(object):
             img = 2. * img - 1
         elif target == 'imagenet-norm':
             if len(img.shape) == 3:
-                img = rearrange(img, 'h w c -> c h w')  # move to channel first
                 img = (img - self.imagenet_mean_cpu) / self.imagenet_std_cpu
-                img = rearrange(img, 'c h w -> h w c')  # back to channel last
             elif len(img.shape) == 4:
-                img = rearrange(img, 'n h w c -> n c h w')  # move to channel first
                 img = (img - self.imagenet_mean) / self.imagenet_std
-                img = rearrange(img, 'n c h w -> n h w c')  # back to channel last
         elif target == 'y_channel':
             img = tf.tensordot(img[:, 4:-4, 4:-4, :] * 255, self.rgb_weights, axes=[[3], [0]]) / 255. + 16.
 
