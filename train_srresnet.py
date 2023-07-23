@@ -1,3 +1,6 @@
+# standard imports
+from dotenv import load_dotenv
+
 # third-party imports
 import tensorflow as tf  # type: ignore
 from tensorflow.keras.losses import Loss  # type:ignore
@@ -6,6 +9,8 @@ from PIL import Image  # type: ignore
 # module imports
 from dataset import create_dataset
 from model import SuperResolutionResNet
+
+load_dotenv()
 
 # Data parameters
 data_folder = './'  # folder with JSON data files
@@ -30,8 +35,6 @@ lr = 1e-5  # learning rate
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
 loss_fn = tf.keras.losses.MeanSquaredError()
-
-tf.config.set_visible_devices([], 'GPU')
 
 
 @tf.function

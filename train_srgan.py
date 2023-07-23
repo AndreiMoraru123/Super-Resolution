@@ -1,3 +1,6 @@
+# standard imports
+from dotenv import load_dotenv
+
 # third-party imports
 import tensorflow as tf  # type: ignore
 from tensorflow.keras.losses import Loss  # type:ignore
@@ -7,6 +10,8 @@ from PIL import Image  # type: ignore
 from dataset import create_dataset
 from transforms import ImageTransform
 from model import Generator, Discriminator, TruncatedVGG19
+
+load_dotenv()
 
 # Data parameters
 data_folder = './'  # folder with JSON data files
@@ -43,9 +48,8 @@ optimizer_d = tf.keras.optimizers.Adam(learning_rate=lr)
 content_loss = tf.keras.losses.MeanSquaredError()
 adversarial_loss = tf.keras.losses.BinaryCrossentropy()
 
-tf.config.set_visible_devices([], 'GPU')
 
-
+@tf.function
 def train_step(low_res_images, high_res_images, generator, discriminator, adversarial_loss,
                truncated_vgg, optimizer_d, optimizer_g, content_loss, transform) -> Loss:
     """
