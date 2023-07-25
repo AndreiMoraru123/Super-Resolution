@@ -6,7 +6,6 @@ from typing import Tuple, Union
 import numpy as np
 import tensorflow as tf  # type: ignore
 from PIL import Image  # type: ignore
-from einops import rearrange
 
 
 class ImageTransform(object):

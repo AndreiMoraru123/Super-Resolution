@@ -1,6 +1,6 @@
 # standard imports
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 
 # third party imports
 import pytest  # type: ignore
@@ -8,7 +8,7 @@ import tensorflow as tf  # type: ignore
 from PIL import Image  # type: ignore
 
 # module imports
-from dataset import create_dataset
+from trainer import Trainer
 
 
 @pytest.fixture(name="json_path")
@@ -37,15 +37,27 @@ def dataset_config(json_path):
         "split": "test",
         "crop_size": 96,
         "scaling_factor": 4,
-        "lr_img_type": "[0, 255]",
-        "hr_img_type": "[0, 255]",
+        "low_res_img_type": "[0, 255]",
+        "high_res_img_type": "[0, 255]",
         "test_data_name": "dummy",
     }
     return config
 
 
+@pytest.fixture(name="trainer")
+def mock_trainer(config):
+    """Mock Trainer with no compilation step and mock architecture."""
+    mock_compile = patch.object(Trainer, "compile", return_value=None)
+    mock_compile.start()
+
+    instance = Trainer(data_folder=config['data_folder'], architecture=MagicMock())
+    yield instance
+    # Optional here, since I don't care if it persists
+    mock_compile.stop()
+
+
 @patch("PIL.Image.open")
-def test_dataset_creation(mock_img_open, config):
+def test_dataset_creation(mock_img_open, trainer, config):
     """Test Dataset creation with mocked paths and image."""
 
     # Mock image object
@@ -58,7 +70,7 @@ def test_dataset_creation(mock_img_open, config):
     # Return the mock image on PIL Image open
     mock_img_open.return_value = mock_img
     # Create Dataset from config
-    dataset = create_dataset(**config)
+    dataset = trainer.create_dataset(**config)
     # "image1.jpg", "image2.jpg", "image3.jpg"
     assert len(list(dataset.as_numpy_iterator())) == 3
     # assert data content
