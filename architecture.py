@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 
 # third-party imports
 import tensorflow as tf
-from tensorflow.keras import losses, Model  # type: ignore
+from tensorflow.keras import Model  # type: ignore
+from tensorflow.keras.losses import Loss  # type: ignore
 from tensorflow.keras.optimizers import Optimizer  # type: ignore
 from PIL import Image  # type: ignore
 
@@ -20,10 +21,10 @@ class Architecture(ABC):
     def __init__(
         self,
         model: Model,
-        loss_fn: losses.Loss,
+        loss_fn: Loss,
         optimizer: Optimizer,
         model2: Optional[Model] = None,
-        loss_fn2: Optional[losses.Loss] = None,
+        loss_fn2: Optional[Loss] = None,
         optimizer2: Optional[Optimizer] = None,
     ):
         """
@@ -58,7 +59,7 @@ class ResNetArchitecture(Architecture):
     """Super Resolution ResNet."""
 
     @tf.function(jit_compile=True)
-    def train_step(self, low_res_images: Image.Image, high_res_images: Image.Image) -> losses.Loss:
+    def train_step(self, low_res_images: Image.Image, high_res_images: Image.Image) -> Loss:
         with tf.GradientTape() as tape:
             super_res_images = self.model(low_res_images, training=True)
             loss = self.loss_fn(high_res_images, super_res_images)
@@ -78,8 +79,8 @@ class GANArchitecture(Architecture):
         dis_model: Model,
         gen_optimizer: Optimizer,
         dis_optimizer: Optimizer,
-        content_loss: losses.Loss,
-        adversarial_loss: losses.Loss,
+        content_loss: Loss,
+        adversarial_loss: Loss,
         transform: ImageTransform,
         vgg: Model,
         beta: float = 1e-3,
@@ -103,12 +104,7 @@ class GANArchitecture(Architecture):
         self.beta = beta
 
     @tf.function(jit_compile=True)
-    def train_step(
-        self,
-        low_res_images: Image.Image,
-        high_res_images: Image.Image,
-    ) -> Tuple[losses.Loss, losses.Loss]:
-
+    def train_step(self, low_res_images: Image.Image, high_res_images: Image.Image) -> Tuple[Loss, Loss]:
         with tf.GradientTape() as gen_tape:
             super_res_images = self.model(low_res_images)
             super_res_images = self.transform.convert_image(super_res_images,
@@ -129,8 +125,10 @@ class GANArchitecture(Architecture):
         with tf.GradientTape() as dis_tape:
             super_res_discriminated = self.model2(tf.stop_gradient(super_res_images))  # re-evaluate without gradients
             high_res_discriminated = self.model2(high_res_images)
-            adversarial_loss = self.loss_fn2(super_res_discriminated, tf.zeros_like(super_res_discriminated)) + \
-                               self.loss_fn2(high_res_discriminated, tf.ones_like(high_res_discriminated))
+
+            adversarial_loss = \
+                self.loss_fn2(super_res_discriminated, tf.zeros_like(super_res_discriminated)) + \
+                self.loss_fn2(high_res_discriminated, tf.ones_like(high_res_discriminated))
 
         dis_gradients = dis_tape.gradient(adversarial_loss, self.model2.trainable_variables)
         self.optimizer2.apply_gradients(zip(dis_gradients, self.model2.trainable_variables))
