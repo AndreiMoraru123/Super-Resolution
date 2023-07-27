@@ -19,8 +19,7 @@ class MockTensor:
 
 
 @pytest.fixture(
-    params=
-    [
+    params=[
         (32, 64, 3, 1, False, None),
         (32, 64, 3, 1, True, 'prelu'),
         (32, 64, 5, 1, False, 'leakyrelu'),
@@ -33,8 +32,7 @@ def conv_block_params(request):
 
 
 @pytest.fixture(
-    params=
-    [
+    params=[
         (3, 64, 2),
         (5, 32, 3),
         (3, 128, 4),
@@ -47,8 +45,7 @@ def subpixel_conv_block_params(request):
 
 
 @pytest.fixture(
-    params=
-    [
+    params=[
         (3, 64),
         (5, 32),
         (3, 128),
@@ -61,8 +58,7 @@ def residual_block_params(request):
 
 
 @pytest.fixture(
-    params=
-    [
+    params=[
         (9, 3, 64, 16, 2),
         (9, 3, 64, 16, 4),
         (9, 3, 64, 16, 8),
@@ -75,8 +71,7 @@ def sr_resnet_params(request):
 
 
 @pytest.fixture(
-    params=
-    [
+    params=[
         (3, 64, 8, 1024),
         (3, 32, 6, 512),
         (3, 16, 4, 2048),
@@ -89,8 +84,7 @@ def discriminator_params(request):
 
 
 @pytest.fixture(
-    params=
-    [
+    params=[
         (2, 1),
         (3, 2),
         (4, 3),

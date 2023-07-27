@@ -1,6 +1,6 @@
 # standard imports
 import json
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock
 
 # third party imports
 import pytest  # type: ignore

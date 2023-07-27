@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 # module imports
 from trainer import Trainer
 from transforms import ImageTransform
-from utils import ResNetArchitecture, GANArchitecture
+from architecture import ResNetArchitecture, GANArchitecture
 from model import SuperResolutionResNet, Generator, Discriminator, TruncatedVGG19
 
 load_dotenv()
@@ -95,4 +95,4 @@ def main(architecture_type: str = "resnet"):
 
 
 if __name__ == "__main__":
-    main(architecture_type="gan")
+    main(architecture_type="resnet")

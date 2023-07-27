@@ -5,6 +5,7 @@ from typing import List, Optional
 # third-party imports
 import tensorflow as tf  # type: ignore
 from tensorflow.keras import layers, Model  # type: ignore
+from tensorflow.keras.applications import VGG19  # type: ignore
 
 
 class ConvolutionalBlock(layers.Layer):
@@ -236,6 +237,7 @@ class Generator(Model):
         """
         Forward pass of the Generator
 
+        :param training: whether the layer is in training mode or not
         :param low_res_images: low-resolution input images, a tensor of size (N, w, h, 3)
         :return: super-resolution output images, a tensor of size (N, w * scaling factor, h * scaling factor, 3)
         """
@@ -315,7 +317,7 @@ class TruncatedVGG19(Model):
         """
         super().__init__(**kwargs)
 
-        vgg19 = tf.keras.applications.VGG19(include_top=False)
+        vgg19 = VGG19(include_top=False)
         maxpool_counter = 0
         conv_counter = 0
         truncate_at = None
@@ -324,7 +326,7 @@ class TruncatedVGG19(Model):
             if isinstance(layer, layers.Conv2D):
                 conv_counter += 1
             if isinstance(layer, layers.MaxPooling2D):
-                maxpool_counter +=1
+                maxpool_counter += 1
                 conv_counter = 0
 
             # Break if we reach the jth convolution after the (i-1)th max-pool

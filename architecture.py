@@ -55,6 +55,8 @@ class Architecture(ABC):
 
 
 class ResNetArchitecture(Architecture):
+    """Super Resolution ResNet."""
+
     @tf.function(jit_compile=True)
     def train_step(self, low_res_images: Image.Image, high_res_images: Image.Image) -> losses.Loss:
         with tf.GradientTape() as tape:
@@ -68,6 +70,8 @@ class ResNetArchitecture(Architecture):
 
 
 class GANArchitecture(Architecture):
+    """Super Resolution GAN."""
+
     def __init__(
         self,
         gen_model: Model,
@@ -104,13 +108,14 @@ class GANArchitecture(Architecture):
         low_res_images: Image.Image,
         high_res_images: Image.Image,
     ) -> Tuple[losses.Loss, losses.Loss]:
+
         with tf.GradientTape() as gen_tape:
             super_res_images = self.model(low_res_images)
             super_res_images = self.transform.convert_image(super_res_images,
                                                             source='[-1, 1]',
                                                             target='imagenet-norm')
             super_res_images_vgg_space = self.vgg(super_res_images)
-            high_res_images_vgg_space = self.vgg(tf.stop_gradient(high_res_images))  # do not get updated
+            high_res_images_vgg_space = self.vgg(tf.stop_gradient(high_res_images))  # does not get updated
 
             super_res_discriminated = self.model2(super_res_images)
 

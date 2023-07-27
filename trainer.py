@@ -1,9 +1,6 @@
 # standard imports
 import os
 import json
-import time
-import shutil
-import logging
 
 # third-party imports
 import tensorflow as tf  # type: ignore
@@ -14,11 +11,12 @@ from PIL import Image  # type: ignore
 
 # module imports
 from transforms import ImageTransform
-from utils import Architecture, ResNetArchitecture, GANArchitecture
+from architecture import Architecture, ResNetArchitecture, GANArchitecture
 
 
 class Trainer:
-    """Utility class to train super resolution models"""
+    """Utility class to train super resolution models."""
+
     def __init__(
         self,
         architecture: Architecture,
@@ -48,6 +46,7 @@ class Trainer:
 
     def compile(self):
         """Compiles the model with the optimizer and loss criterion."""
+
         if isinstance(self.architecture, GANArchitecture):
             self.architecture.model.compile(optimizer=self.architecture.optimizer, loss=self.architecture.loss_fn)
             self.architecture.model2.compile(optimizer=self.architecture.optimizer2, loss=self.architecture.loss_fn2)
@@ -57,7 +56,15 @@ class Trainer:
             raise NotImplementedError("Trainer not defined for this type of architecture")
 
     def train(self, start_epoch: int,  epochs: int, batch_size: int, print_freq: int):
-        """Trains the model for the given number of epochs."""
+        """
+        Train the given model architecture.
+
+        :param start_epoch: starting epoch
+        :param epochs: total number of epochs
+        :param batch_size: how many images the model sees at once
+        :param print_freq: log stats with this frequency
+        """
+
         self.dataset = self.dataset.batch(batch_size=batch_size)
         self.dataset = self.dataset.prefetch(tf.data.AUTOTUNE)
 
@@ -122,6 +129,7 @@ class Trainer:
 
         def generator():
             """Data generator for the TensorFlow Dataset."""
+
             for image_path in images:
                 img = Image.open(image_path, mode='r')
                 img = img.convert('RGB')
