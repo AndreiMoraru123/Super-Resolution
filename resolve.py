@@ -58,7 +58,7 @@ def super_resolve(img: str, halve: bool = False):
     sr_img_srresnet = tf.squeeze(sr_img_srresnet['output_0'])
     sr_img_srresnet = transform.convert_image(sr_img_srresnet, source='[-1, 1]', target='pil')
 
-    sr_img_srgan = resnet_inference(lr_img)
+    sr_img_srgan = generator_inference(lr_img)
     sr_img_srgan = tf.squeeze(sr_img_srgan['output_0'])
     sr_img_srgan = transform.convert_image(sr_img_srgan, source='[-1, 1]', target='pil')
 

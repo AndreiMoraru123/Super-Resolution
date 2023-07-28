@@ -19,7 +19,7 @@ scaling_factor = 4  # the input LR images will be down-sampled from the target H
 large_kernel_size = 9  # kernel size of the first and last convolutions which transform the inputs and outputs
 small_kernel_size = 3  # kernel size of the first and last convolutions which transform the inputs and outputs
 n_channels = 64  # number of channels in-between, input and output channels for residual & subpixel conv blocks
-n_blocks = 16  # number of residual blocks
+n_blocks = 32  # number of residual blocks
 srresnet_checkpoint = "SuperResolutionResNet_9999"  # trained SRResNet checkpoint used for initialization
 
 # Discriminator parameters
@@ -94,4 +94,4 @@ def main(architecture_type: str = "resnet"):
 
 
 if __name__ == "__main__":
-    main(architecture_type="gan")
+    main(architecture_type="resnet")
