@@ -151,7 +151,7 @@ def test_generator_output_shape(sr_resnet_params):
     mock_sr_resnet_model.call.return_value = mock_output_tensor
 
     # We know the generator is behaving like ResNet, so we mock it just for fun
-    with mock.patch('tensorflow.keras.models.load_model', return_value=mock_sr_resnet_model):
+    with mock.patch('tensorflow.saved_model.load', return_value=mock_sr_resnet_model):
         generator.initialize_with_srresnet('mock_srresnet_checkpoint')
 
     # I don't actually write code like this in real life
