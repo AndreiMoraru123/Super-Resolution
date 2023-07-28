@@ -55,6 +55,28 @@ class Trainer:
         else:
             raise NotImplementedError("Trainer not defined for this type of architecture")
 
+    def save_checkpoint(self, name: str, epoch: int):
+        """
+        Saves the model checkpoint at the given epoch.
+
+        :param name: model name
+        :param epoch: the given epoch for which to save the model.
+        """
+
+        @tf.function(input_signature=[tf.TensorSpec(shape=[None, None, None, 3], dtype=tf.float32)])
+        def serving_fn(image_batch):
+            """
+            Serving function for saving the model.
+
+            :param image_batch: input image place-holder
+            :return: model inference function
+            """
+            return self.architecture.model(image_batch)
+
+        tf.saved_model.save(self.architecture.model,
+                            export_dir=f"{name}_{epoch}/",
+                            signatures=serving_fn)
+
     def train(self, start_epoch: int,  epochs: int, batch_size: int, print_freq: int):
         """
         Train the given model architecture.
@@ -86,6 +108,9 @@ class Trainer:
                     if i % print_freq == 0:
                         print(f'Epoch: [{epoch}][{i}/{epochs}]----'
                               f'Loss {loss:.4f}')
+
+            if (epoch + 1) % 10_000 == 0:
+                self.save_checkpoint(name=self.architecture.model.__class__.__name__, epoch=epoch)
 
     @staticmethod
     def create_dataset(

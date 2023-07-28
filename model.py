@@ -42,7 +42,7 @@ class ConvolutionalBlock(layers.Layer):
 
         # PReLU and LeakyReLU have configurable parameters, so we can't just pass the strings to Keras
         if activation == 'prelu':
-            self.activation_layer = layers.PReLU()
+            self.activation_layer = layers.PReLU(shared_axes=[1, 2])
         elif activation == 'leakyrelu':
             self.activation_layer = layers.LeakyReLU(0.2)
         elif activation == 'tanh':
@@ -87,7 +87,7 @@ class SubPixelConvolutionalBlock(layers.Layer):
         self.conv = layers.Conv2D(filters=n_channels * (scaling_factor ** 2),
                                   kernel_size=kernel_size, padding='same')
         self.scaling_factor = scaling_factor
-        self.prelu = layers.PReLU()
+        self.prelu = layers.PReLU(shared_axes=[1, 2])
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         """
@@ -231,7 +231,7 @@ class Generator(Model):
 
         :param srresnet_checkpoint: checkpoint filepath
         """
-        self.net = tf.keras.models.load_model(srresnet_checkpoint)
+        self.net = tf.saved_model.load(srresnet_checkpoint)
 
     def call(self, low_res_images: tf.Tensor, training: bool = False) -> tf.Tensor:
         """
