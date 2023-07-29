@@ -106,14 +106,14 @@ class GANArchitecture(Architecture):
     @tf.function(jit_compile=True)
     def train_step(self, low_res_images: Image.Image, high_res_images: Image.Image) -> Tuple[Loss, Loss]:
         with tf.GradientTape() as gen_tape:
-            super_res_images = self.model(low_res_images)
+            super_res_images = self.model(low_res_images, training=True)
             super_res_images = self.transform.convert_image(super_res_images,
                                                             source='[-1, 1]',
                                                             target='imagenet-norm')
             super_res_images_vgg_space = self.vgg(super_res_images)
             high_res_images_vgg_space = self.vgg(tf.stop_gradient(high_res_images))  # does not get updated
 
-            super_res_discriminated = self.model2(super_res_images)
+            super_res_discriminated = self.model2(super_res_images, training=True)
 
             content_loss = self.loss_fn(super_res_images_vgg_space, high_res_images_vgg_space)
             adversarial_loss = self.loss_fn2(super_res_discriminated, tf.ones_like(super_res_discriminated))
@@ -123,8 +123,8 @@ class GANArchitecture(Architecture):
         self.optimizer.apply_gradients(zip(gen_gradients, self.model.trainable_variables))
 
         with tf.GradientTape() as dis_tape:
-            super_res_discriminated = self.model2(tf.stop_gradient(super_res_images))  # re-evaluate without gradients
-            high_res_discriminated = self.model2(high_res_images)
+            super_res_discriminated = self.model2(tf.stop_gradient(super_res_images), training=True)
+            high_res_discriminated = self.model2(high_res_images, training=True)
 
             adversarial_loss = \
                 self.loss_fn2(super_res_discriminated, tf.zeros_like(super_res_discriminated)) + \

@@ -271,9 +271,7 @@ class Discriminator(Model):
 
         self.conv_blocks = tf.keras.Sequential(conv_blocks)
 
-        self.average_pool = layers.AveragePooling2D(pool_size=(4, 4))
-
-        self.flatten = layers.Flatten()
+        self.pool = layers.GlobalAveragePooling2D()
 
         self.fc1 = layers.Dense(fc_size)
 
@@ -291,8 +289,7 @@ class Discriminator(Model):
         :return: a score (logit) for whether it is a high-resolution image, a Tensor of shape (N)
         """
         output = self.conv_blocks(images, training=training)
-        output = self.average_pool(output)
-        output = self.flatten(output)
+        output = self.pool(output)
         output = self.fc1(output)
         output = self.leaky_relu(output)
         logit = self.fc2(output)  # (N, 1) as Keras retains the last dimension for convenience

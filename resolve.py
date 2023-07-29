@@ -9,10 +9,10 @@ from transforms import ImageTransform
 crop_size = 96  # crop size of target HR images
 scaling_factor = 4  # the input LR images will be down-sampled from the target HR images by this factor
 
-resnet = tf.saved_model.load("SuperResolutionResNet_9999")
+resnet = tf.saved_model.load("SuperResolutionResNet_99999")
 resnet_inference = resnet.signatures["serving_default"]
 
-generator = tf.saved_model.load("Generator_9999")
+generator = tf.saved_model.load("Generator_99999")
 generator_inference = generator.signatures["serving_default"]
 
 # Need this instance for conversions
@@ -42,13 +42,12 @@ def super_resolve(img: str, halve: bool = False):
     hr_img = hr_img.convert('RGB')
 
     if halve:
-        hr_img = hr_img.resize((int(hr_img.width / 2), int(hr_img.height / 2)),
-                               Image.LANCZOS)
+        hr_img = hr_img.resize((int(hr_img.width / 2), int(hr_img.height / 2)), Image.LANCZOS)
 
-    lr_img = hr_img.resize((int(hr_img.width / 4), int(hr_img.height / 4)),
-                           Image.BICUBIC)
+    # Create low resolution image at runtime
+    lr_img = hr_img.resize((int(hr_img.width / 4), int(hr_img.height / 4)), Image.BICUBIC)
 
-    # Bicubic Upsampling
+    # Bicubic Up-sampling
     bicubic_img = lr_img.resize((hr_img.width, hr_img.height), Image.BICUBIC)
 
     lr_img = tf.expand_dims(transform.convert_image(lr_img, source='pil', target='imagenet-norm'), axis=0)
@@ -58,6 +57,7 @@ def super_resolve(img: str, halve: bool = False):
     sr_img_srresnet = tf.squeeze(sr_img_srresnet['output_0'])
     sr_img_srresnet = transform.convert_image(sr_img_srresnet, source='[-1, 1]', target='pil')
 
+    # Super-resolution (SR) with SRGAN
     sr_img_srgan = generator_inference(lr_img)
     sr_img_srgan = tf.squeeze(sr_img_srgan['output_0'])
     sr_img_srgan = transform.convert_image(sr_img_srgan, source='[-1, 1]', target='pil')
@@ -102,4 +102,4 @@ def super_resolve(img: str, halve: bool = False):
 
 
 if __name__ == '__main__':
-    super_resolve("bird.jpeg", halve=False)
+    super_resolve("bird.jpeg", halve=True)

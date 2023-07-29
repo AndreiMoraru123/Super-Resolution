@@ -18,13 +18,13 @@ scaling_factor = 4  # the input LR images will be down-sampled from the target H
 # Common Model parameters
 large_kernel_size = 9  # kernel size of the first and last convolutions which transform the inputs and outputs
 small_kernel_size = 3  # kernel size of the first and last convolutions which transform the inputs and outputs
-n_channels = 64  # number of channels in-between, input and output channels for residual & subpixel conv blocks
-n_blocks = 32  # number of residual blocks
-srresnet_checkpoint = "SuperResolutionResNet_9999"  # trained SRResNet checkpoint used for initialization
+n_channels = 128  # number of channels in-between, input and output channels for residual & subpixel conv blocks
+n_blocks = 64  # number of residual blocks
+srresnet_checkpoint = "SuperResolutionResNet_99999"  # trained SRResNet checkpoint used for generator initialization
 
 # Discriminator parameters
 kernel_size_d = 3  # kernel size in all convolutional blocks
-n_channels_d = 64  # number of channels in-between, input and output channels for residual & subpixel conv blocks
+n_channels_d = 128  # number of channels in-between, input and output channels for residual & subpixel conv blocks
 n_blocks_d = 8  # number of convolutional blocks
 fc_size_d = 1024  # size of the first fully connected layer
 
@@ -36,9 +36,9 @@ vgg19_j = 4  # the index j in the definition for VGG loss; see paper or models.p
 checkpoint = None  # path to model checkpoint, None if none
 batch_size = 1  # batch size
 start_epoch = 0  # start at this epoch
-epochs = 10_000  # number of training epochs
+epochs = 100_000  # number of training epochs
 print_freq = 500  # print training status once every __ batches
-lr = 1e-5  # learning rate
+lr = 1e-6  # learning rate
 beta = 1e-3  # the coefficient to weight the adversarial loss in the perceptual loss
 
 
@@ -94,4 +94,4 @@ def main(architecture_type: str = "resnet"):
 
 
 if __name__ == "__main__":
-    main(architecture_type="resnet")
+    main(architecture_type="gan")

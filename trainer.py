@@ -109,7 +109,7 @@ class Trainer:
                         print(f'Epoch: [{epoch}][{i}/{epochs}]----'
                               f'Loss {loss:.4f}')
 
-            if (epoch + 1) % 10_000 == 0:
+            if (epoch + 1) % 100_000 == 0:
                 self.save_checkpoint(name=self.architecture.model.__class__.__name__, epoch=epoch)
 
     @staticmethod
