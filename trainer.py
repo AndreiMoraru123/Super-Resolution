@@ -6,8 +6,6 @@ import logging
 
 # third-party imports
 import tensorflow as tf  # type: ignore
-from tensorflow.keras.metrics import Mean  # type: ignore
-from tensorboard.plugins import projector  # type: ignore
 from colorama import Fore, init  # type: ignore
 from PIL import Image  # type: ignore
 
@@ -159,7 +157,7 @@ class Trainer:
                             )
                             tf.summary.scalar("Loss", loss, step=i)
 
-            if (epoch + 1) % 100_000 == 0:
+            if (epoch + 1) % 10_000 == 0:
                 self.save_checkpoint(
                     name=self.architecture.model.__class__.__name__, epoch=epoch
                 )

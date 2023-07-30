@@ -1,6 +1,8 @@
+# third-party imports
 import tensorflow as tf  # type: ignore
 from pprint import PrettyPrinter
 
+# module imports
 from evaluator import Evaluator
 
 # Instantiate pretty printer

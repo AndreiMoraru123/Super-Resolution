@@ -20,7 +20,7 @@ large_kernel_size = 9  # kernel size of the first and last convolutions which tr
 small_kernel_size = 3  # kernel size of the first and last convolutions which transform the inputs and outputs
 n_channels = 128  # number of channels in-between, input and output channels for residual & subpixel conv blocks
 n_blocks = 64  # number of residual blocks
-srresnet_checkpoint = "SuperResolutionResNet_99999"  # trained SRResNet checkpoint used for generator initialization
+srresnet_checkpoint = ""  # trained SRResNet checkpoint used for generator initialization
 
 # Discriminator parameters
 kernel_size_d = 3  # kernel size in all convolutional blocks
@@ -35,7 +35,7 @@ vgg19_j = 4  # the index j in the definition for VGG loss; see paper or models.p
 # Learning parameters
 batch_size = 1  # batch size
 start_epoch = 0  # start at this epoch
-epochs = 100_000  # number of training epochs
+epochs = 10_000  # number of training epochs
 print_freq = 500  # print training status once every __ batches
 lr = 1e-6  # learning rate
 beta = 1e-3  # the coefficient to weight the adversarial loss in the perceptual loss
