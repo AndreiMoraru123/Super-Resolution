@@ -55,8 +55,8 @@ def create_data_lists(
 if __name__ == "__main__":
     create_data_lists(
         train_folders=[
-            r"D:\WatchAndTellCuda\coco\images\train2017",
-            r"D:\WatchAndTellCuda\coco\images\val2017",
+            "/mnt/d/WatchAndTellCuda/coco/images/train2017",
+            "/mnt/d/WatchAndTellCuda/coco/images/val2017",
         ],
         test_folders=["SR/BSDS100", "SR/Set5", "SR/Set14"],
         min_size=100,
