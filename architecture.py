@@ -59,7 +59,9 @@ class ResNetArchitecture(Architecture):
     """Super Resolution ResNet."""
 
     @tf.function(jit_compile=True)
-    def train_step(self, low_res_images: Image.Image, high_res_images: Image.Image) -> Loss:
+    def train_step(
+        self, low_res_images: Image.Image, high_res_images: Image.Image
+    ) -> Loss:
         with tf.GradientTape() as tape:
             super_res_images = self.model(low_res_images, training=True)
             loss = self.loss_fn(high_res_images, super_res_images)
@@ -97,40 +99,66 @@ class GANArchitecture(Architecture):
         :param vgg: Optional truncated VGG19 to project the predictions into a dimension where the loss makes more sense
         :param beta: the coefficient to weight the adversarial loss in the perceptual loss
         """
-        super().__init__(model=gen_model, loss_fn=content_loss, optimizer=gen_optimizer,
-                         model2=dis_model, loss_fn2=adversarial_loss, optimizer2=dis_optimizer)
+        super().__init__(
+            model=gen_model,
+            loss_fn=content_loss,
+            optimizer=gen_optimizer,
+            model2=dis_model,
+            loss_fn2=adversarial_loss,
+            optimizer2=dis_optimizer,
+        )
         self.transform = transform
         self.vgg = vgg
         self.beta = beta
 
     @tf.function(jit_compile=True)
-    def train_step(self, low_res_images: Image.Image, high_res_images: Image.Image) -> Tuple[Loss, Loss]:
+    def train_step(
+        self, low_res_images: Image.Image, high_res_images: Image.Image
+    ) -> Tuple[Loss, Loss]:
         with tf.GradientTape() as gen_tape:
             super_res_images = self.model(low_res_images, training=True)
-            super_res_images = self.transform.convert_image(super_res_images,
-                                                            source='[-1, 1]',
-                                                            target='imagenet-norm')
+            super_res_images = self.transform.convert_image(
+                super_res_images, source="[-1, 1]", target="imagenet-norm"
+            )
             super_res_images_vgg_space = self.vgg(super_res_images)
-            high_res_images_vgg_space = self.vgg(tf.stop_gradient(high_res_images))  # does not get updated
+            high_res_images_vgg_space = self.vgg(
+                tf.stop_gradient(high_res_images)
+            )  # does not get updated
 
             super_res_discriminated = self.model2(super_res_images, training=True)
 
-            content_loss = self.loss_fn(super_res_images_vgg_space, high_res_images_vgg_space)
-            adversarial_loss = self.loss_fn2(super_res_discriminated, tf.ones_like(super_res_discriminated))
+            content_loss = self.loss_fn(
+                super_res_images_vgg_space, high_res_images_vgg_space
+            )
+            adversarial_loss = self.loss_fn2(
+                super_res_discriminated, tf.ones_like(super_res_discriminated)
+            )
             perceptual_loss = content_loss + self.beta * adversarial_loss
 
-        gen_gradients = gen_tape.gradient(perceptual_loss, self.model.trainable_variables)
-        self.optimizer.apply_gradients(zip(gen_gradients, self.model.trainable_variables))
+        gen_gradients = gen_tape.gradient(
+            perceptual_loss, self.model.trainable_variables
+        )
+        self.optimizer.apply_gradients(
+            zip(gen_gradients, self.model.trainable_variables)
+        )
 
         with tf.GradientTape() as dis_tape:
-            super_res_discriminated = self.model2(tf.stop_gradient(super_res_images), training=True)
+            super_res_discriminated = self.model2(
+                tf.stop_gradient(super_res_images), training=True
+            )
             high_res_discriminated = self.model2(high_res_images, training=True)
 
-            adversarial_loss = \
-                self.loss_fn2(super_res_discriminated, tf.zeros_like(super_res_discriminated)) + \
-                self.loss_fn2(high_res_discriminated, tf.ones_like(high_res_discriminated))
+            adversarial_loss = self.loss_fn2(
+                super_res_discriminated, tf.zeros_like(super_res_discriminated)
+            ) + self.loss_fn2(
+                high_res_discriminated, tf.ones_like(high_res_discriminated)
+            )
 
-        dis_gradients = dis_tape.gradient(adversarial_loss, self.model2.trainable_variables)
-        self.optimizer2.apply_gradients(zip(dis_gradients, self.model2.trainable_variables))
+        dis_gradients = dis_tape.gradient(
+            adversarial_loss, self.model2.trainable_variables
+        )
+        self.optimizer2.apply_gradients(
+            zip(dis_gradients, self.model2.trainable_variables)
+        )
 
         return perceptual_loss, adversarial_loss

@@ -33,7 +33,7 @@ def dataset_config(json_path):
     """Configuration parameters for creating the Dataset."""
 
     config = {
-        'data_folder': json_path,
+        "data_folder": json_path,
         "split": "train",
         "crop_size": 96,
         "scaling_factor": 4,
@@ -50,7 +50,7 @@ def mock_trainer(config):
     mock_compile = patch.object(Trainer, "compile", return_value=None)
     mock_compile.start()
 
-    instance = Trainer(data_folder=config['data_folder'], architecture=MagicMock())
+    instance = Trainer(data_folder=config["data_folder"], architecture=MagicMock())
     yield instance
     # Optional here, since I don't care if it persists
     mock_compile.stop()
@@ -61,10 +61,10 @@ def test_dataset_creation(mock_img_open, trainer, config):
     """Test Dataset creation with mocked paths and image."""
 
     # Mock image object
-    mock_img = Image.new(mode='RGB', size=(150, 150))
+    mock_img = Image.new(mode="RGB", size=(150, 150))
     # Cannot crop a larger patch from a smaller image
-    assert mock_img.size[0] > config['crop_size']
-    assert mock_img.size[1] > config['crop_size']
+    assert mock_img.size[0] > config["crop_size"]
+    assert mock_img.size[1] > config["crop_size"]
     # Mock RGB conversion
     mock_img.convert = MagicMock(return_value=mock_img)
     # Return the mock image on PIL Image open
@@ -85,5 +85,5 @@ def test_dataset_creation(mock_img_open, trainer, config):
         assert lr_img.dtype == tf.float32
         assert hr_img.dtype == tf.float32
         # Assert transform from high to low resolution took place
-        assert hr_img.shape[0] // config['scaling_factor'] == lr_img.shape[0]
-        assert hr_img.shape[1] // config['scaling_factor'] == lr_img.shape[1]
+        assert hr_img.shape[0] // config["scaling_factor"] == lr_img.shape[0]
+        assert hr_img.shape[1] // config["scaling_factor"] == lr_img.shape[1]

@@ -33,7 +33,6 @@ vgg19_i = 5  # the index i in the definition for VGG loss; see paper or models.p
 vgg19_j = 4  # the index j in the definition for VGG loss; see paper or models.py
 
 # Learning parameters
-checkpoint = None  # path to model checkpoint, None if none
 batch_size = 1  # batch size
 start_epoch = 0  # start at this epoch
 epochs = 100_000  # number of training epochs
@@ -109,6 +108,7 @@ def main(architecture_type: str = "resnet"):
         raise NotImplementedError("Model architecture not implemented")
 
     trainer = Trainer(architecture=architecture, data_folder=data_folder)
+
     trainer.train(
         start_epoch=start_epoch,
         epochs=epochs,

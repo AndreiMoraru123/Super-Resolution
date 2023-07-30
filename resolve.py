@@ -7,7 +7,7 @@ from evaluator import Evaluator
 pp = PrettyPrinter(indent=4)
 
 # Test data folder and name
-data_folder = './'
+data_folder = "./"
 test_data_name = "dummy"
 
 # Image to resolve
@@ -23,7 +23,7 @@ if __name__ == "__main__":
         resnet=resnet,
         generator=generator,
         data_folder=data_folder,
-        test_data_name=test_data_name
+        test_data_name=test_data_name,
     )
 
     # Evaluate models

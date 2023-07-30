@@ -36,21 +36,32 @@ class ConvolutionalBlock(layers.Layer):
 
         if activation is not None:
             activation = activation.lower()
-            assert activation in {'prelu', 'leakyrelu', 'tanh'}, f"{activation} not implemented"
+            assert activation in {
+                "prelu",
+                "leakyrelu",
+                "tanh",
+            }, f"{activation} not implemented"
 
         blocks: List[layers.Layer] = []
 
         # PReLU and LeakyReLU have configurable parameters, so we can't just pass the strings to Keras
-        if activation == 'prelu':
+        if activation == "prelu":
             self.activation_layer = layers.PReLU(shared_axes=[1, 2])
-        elif activation == 'leakyrelu':
+        elif activation == "leakyrelu":
             self.activation_layer = layers.LeakyReLU(0.2)
-        elif activation == 'tanh':
+        elif activation == "tanh":
             self.activation_layer = layers.Activation(tf.keras.activations.tanh)
 
         # O = (W - K + 2P) / S + 1, so padding='same' is the same as padding = kernel_size // 2 and stride = 1
-        blocks.append(layers.Conv2D(filters=out_channels, kernel_size=kernel_size, strides=stride,
-                                    padding='same', input_shape=(None, None, in_channels)))
+        blocks.append(
+            layers.Conv2D(
+                filters=out_channels,
+                kernel_size=kernel_size,
+                strides=stride,
+                padding="same",
+                input_shape=(None, None, in_channels),
+            )
+        )
 
         if batch_norm:
             blocks.append(layers.BatchNormalization())
@@ -67,7 +78,7 @@ class ConvolutionalBlock(layers.Layer):
         """
 
         output = self.conv_block(inputs, training=training)  # (N, W, H, out_channels)
-        if hasattr(self, 'activation_layer'):
+        if hasattr(self, "activation_layer"):
             output = self.activation_layer(output)
         return output
 
@@ -75,7 +86,13 @@ class ConvolutionalBlock(layers.Layer):
 class SubPixelConvolutionalBlock(layers.Layer):
     """Subpixel Conv Block mapping depth to space (pixel shuffling) with convolutional layers."""
 
-    def __init__(self, kernel_size: int = 3, n_channels: int = 64, scaling_factor: int = 2, **kwargs):
+    def __init__(
+        self,
+        kernel_size: int = 3,
+        n_channels: int = 64,
+        scaling_factor: int = 2,
+        **kwargs,
+    ):
         """
         Initializes the Sub Pixel Conv Block.
 
@@ -84,8 +101,11 @@ class SubPixelConvolutionalBlock(layers.Layer):
         :param scaling_factor: factor to scale the input images by (along both dimensions)
         """
         super().__init__(**kwargs)
-        self.conv = layers.Conv2D(filters=n_channels * (scaling_factor ** 2),
-                                  kernel_size=kernel_size, padding='same')
+        self.conv = layers.Conv2D(
+            filters=n_channels * (scaling_factor**2),
+            kernel_size=kernel_size,
+            padding="same",
+        )
         self.scaling_factor = scaling_factor
         self.prelu = layers.PReLU(shared_axes=[1, 2])
 
@@ -97,7 +117,7 @@ class SubPixelConvolutionalBlock(layers.Layer):
         :return: scaled output images, a Tensor of shape (N, w * scaling_factor, h * scaling_factor, n_channels)
         """
         output = self.conv(inputs)  # (N, w, h, n_channels * scaling_factor)
-        output = tf.nn.depth_to_space(output, self.scaling_factor, data_format='NHWC')
+        output = tf.nn.depth_to_space(output, self.scaling_factor, data_format="NHWC")
         output = self.prelu(output)
         return output
 
@@ -113,12 +133,20 @@ class ResidualBlock(layers.Layer):
         :param n_channels: number of both input and output channels
         """
         super().__init__(**kwargs)
-        self.conv_block1 = ConvolutionalBlock(in_channels=n_channels, out_channels=n_channels,
-                                              kernel_size=kernel_size, batch_norm=True,
-                                              activation='prelu')
-        self.conv_block2 = ConvolutionalBlock(in_channels=n_channels, out_channels=n_channels,
-                                              kernel_size=kernel_size, batch_norm=True,
-                                              activation=None)
+        self.conv_block1 = ConvolutionalBlock(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            kernel_size=kernel_size,
+            batch_norm=True,
+            activation="prelu",
+        )
+        self.conv_block2 = ConvolutionalBlock(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            kernel_size=kernel_size,
+            batch_norm=True,
+            activation=None,
+        )
 
     def call(self, inputs: tf.Tensor, training: bool = False) -> tf.Tensor:
         """
@@ -146,7 +174,7 @@ class SuperResolutionResNet(Model):
         n_channels: int = 64,
         n_blocks: int = 16,
         scaling_factor: int = 4,
-        **kwargs
+        **kwargs,
     ):
         """
         Initializes the Super Resolution Resnet.
@@ -160,25 +188,46 @@ class SuperResolutionResNet(Model):
         super().__init__(**kwargs)
         assert scaling_factor in {2, 4, 8}, "The scaling factor must be 2, 4, or 8!"
 
-        self.conv_block1 = ConvolutionalBlock(in_channels=3, out_channels=n_channels,
-                                              kernel_size=large_kernel_size, batch_norm=False,
-                                              activation='prelu')
-        self.residual_blocks = tf.keras.Sequential(
-            [ResidualBlock(kernel_size=small_kernel_size, n_channels=n_channels) for _ in range(n_blocks)]
+        self.conv_block1 = ConvolutionalBlock(
+            in_channels=3,
+            out_channels=n_channels,
+            kernel_size=large_kernel_size,
+            batch_norm=False,
+            activation="prelu",
         )
-        self.conv_block2 = ConvolutionalBlock(in_channels=n_channels, out_channels=n_channels,
-                                              kernel_size=small_kernel_size, batch_norm=False,
-                                              activation=None)
+        self.residual_blocks = tf.keras.Sequential(
+            [
+                ResidualBlock(kernel_size=small_kernel_size, n_channels=n_channels)
+                for _ in range(n_blocks)
+            ]
+        )
+        self.conv_block2 = ConvolutionalBlock(
+            in_channels=n_channels,
+            out_channels=n_channels,
+            kernel_size=small_kernel_size,
+            batch_norm=False,
+            activation=None,
+        )
 
         n_subpixel_conv_blocks = int(math.log2(scaling_factor))
         # up-scaling by a factor of 2 (so squaring)
         self.subpixel_conv_blocks = tf.keras.Sequential(
-            [SubPixelConvolutionalBlock(kernel_size=small_kernel_size, n_channels=n_channels, scaling_factor=2) for _
-             in range(n_subpixel_conv_blocks)]
+            [
+                SubPixelConvolutionalBlock(
+                    kernel_size=small_kernel_size,
+                    n_channels=n_channels,
+                    scaling_factor=2,
+                )
+                for _ in range(n_subpixel_conv_blocks)
+            ]
         )
-        self.conv_block3 = ConvolutionalBlock(in_channels=n_channels, out_channels=3,
-                                              kernel_size=large_kernel_size, batch_norm=False,
-                                              activation='tanh')
+        self.conv_block3 = ConvolutionalBlock(
+            in_channels=n_channels,
+            out_channels=3,
+            kernel_size=large_kernel_size,
+            batch_norm=False,
+            activation="tanh",
+        )
 
     def call(self, low_res_images: tf.Tensor, training: bool = False) -> tf.Tensor:
         """
@@ -209,7 +258,7 @@ class Generator(Model):
         n_channels: int = 64,
         n_blocks: int = 16,
         scaling_factor: int = 4,
-        **kwargs
+        **kwargs,
     ):
         """
         Initializes the Super Resolution Generator.
@@ -222,8 +271,13 @@ class Generator(Model):
         """
         super().__init__(**kwargs)
 
-        self.net = SuperResolutionResNet(large_kernel_size=large_kernel_size, small_kernel_size=small_kernel_size,
-                                         n_channels=n_channels, n_blocks=n_blocks, scaling_factor=scaling_factor)
+        self.net = SuperResolutionResNet(
+            large_kernel_size=large_kernel_size,
+            small_kernel_size=small_kernel_size,
+            n_channels=n_channels,
+            n_blocks=n_blocks,
+            scaling_factor=scaling_factor,
+        )
 
     def initialize_with_srresnet(self, srresnet_checkpoint: Model):
         """
@@ -248,7 +302,14 @@ class Generator(Model):
 class Discriminator(Model):
     """Discriminator in the Super Resolution GAN."""
 
-    def __init__(self, kernel_size: int = 3, n_channels: int = 64, n_blocks: int = 3, fc_size: int = 1024, **kwargs):
+    def __init__(
+        self,
+        kernel_size: int = 3,
+        n_channels: int = 64,
+        n_blocks: int = 3,
+        fc_size: int = 1024,
+        **kwargs,
+    ):
         """
 
         :param kernel_size: size of the filter in all convolutional blocks
@@ -263,10 +324,21 @@ class Discriminator(Model):
         # the odd convolutional blocks retain the number of channels but halve the image size
         conv_blocks: List[layers.Layer] = []
         for i in range(n_blocks):
-            out_channels = (n_channels if i == 0 else in_channels * 2) if i % 2 == 0 else in_channels
+            out_channels = (
+                (n_channels if i == 0 else in_channels * 2)
+                if i % 2 == 0
+                else in_channels
+            )
             conv_blocks.append(
-                ConvolutionalBlock(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                   stride=1 if i % 2 == 0 else 2, batch_norm=i != 0, activation='leakyrelu'))
+                ConvolutionalBlock(
+                    in_channels=in_channels,
+                    out_channels=out_channels,
+                    kernel_size=kernel_size,
+                    stride=1 if i % 2 == 0 else 2,
+                    batch_norm=i != 0,
+                    activation="leakyrelu",
+                )
+            )
             in_channels = out_channels
 
         self.conv_blocks = tf.keras.Sequential(conv_blocks)
@@ -292,7 +364,9 @@ class Discriminator(Model):
         output = self.pool(output)
         output = self.fc1(output)
         output = self.leaky_relu(output)
-        logit = self.fc2(output)  # (N, 1) as Keras retains the last dimension for convenience
+        logit = self.fc2(
+            output
+        )  # (N, 1) as Keras retains the last dimension for convenience
         logit = tf.squeeze(logit, axis=-1)  # (N)
         return logit
 
@@ -331,9 +405,13 @@ class TruncatedVGG19(Model):
                 truncate_at = idx
                 break
 
-        assert truncate_at is not None, "One or both of i=%d and j=%d are not valid choices for the VGG19!" % (i, j)
+        assert (
+            truncate_at is not None
+        ), "One or both of i=%d and j=%d are not valid choices for the VGG19!" % (i, j)
         # TensorFlow's extraction at [truncate_at] is inclusive unlike Python's exclusive
-        self.truncated_vgg19 = tf.keras.Model(vgg19.input, vgg19.layers[truncate_at].output)
+        self.truncated_vgg19 = tf.keras.Model(
+            vgg19.input, vgg19.layers[truncate_at].output
+        )
 
     def call(self, inputs: tf.Tensor) -> tf.Tensor:
         """

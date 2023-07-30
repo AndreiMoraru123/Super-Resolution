@@ -7,7 +7,9 @@ from typing import List
 from PIL import Image  # type: ignore
 
 
-def create_data_lists(train_folders: List[str], test_folders: List[str], min_size: int, output_folder: str):
+def create_data_lists(
+    train_folders: List[str], test_folders: List[str], min_size: int, output_folder: str
+):
     """
     Create lists for images in the training set and each of the test sets.
 
@@ -21,11 +23,11 @@ def create_data_lists(train_folders: List[str], test_folders: List[str], min_siz
     for d in train_folders:
         for i in os.listdir(d):
             img_path = os.path.join(d, i)
-            img = Image.open(img_path, mode='r')
+            img = Image.open(img_path, mode="r")
             if img.width >= min_size and img.height >= min_size:
                 train_images.append(img_path)
     print("There are %d images in the training data.\n" % len(train_images))
-    with open(os.path.join(output_folder, 'train_images.json'), 'w') as j:
+    with open(os.path.join(output_folder, "train_images.json"), "w") as j:
         json.dump(train_images, j)
 
     for d in test_folders:
@@ -33,21 +35,30 @@ def create_data_lists(train_folders: List[str], test_folders: List[str], min_siz
         test_name = d.split("/")[-1]
         for i in os.listdir(d):
             img_path = os.path.join(d, i)
-            img = Image.open(img_path, mode='r')
+            img = Image.open(img_path, mode="r")
             if img.width >= min_size and img.height >= min_size:
                 test_images.append(img_path)
-        print("There are %d images in the %s test data.\n" % (len(test_images), test_name))
-        with open(os.path.join(output_folder, test_name + '_test_images.json'), 'w') as j:
+        print(
+            "There are %d images in the %s test data.\n" % (len(test_images), test_name)
+        )
+        with open(
+            os.path.join(output_folder, test_name + "_test_images.json"), "w"
+        ) as j:
             json.dump(test_images, j)
 
-    print("JSONS containing lists of Train and Test images have been saved to %s\n" % output_folder)
+    print(
+        "JSONS containing lists of Train and Test images have been saved to %s\n"
+        % output_folder
+    )
 
 
-if __name__ == '__main__':
-    create_data_lists(train_folders=[r'D:\WatchAndTellCuda\coco\images\train2017',
-                                     r'D:\WatchAndTellCuda\coco\images\val2017'],
-                      test_folders=['SR/BSDS100',
-                                    'SR/Set5',
-                                    'SR/Set14'],
-                      min_size=100,
-                      output_folder='./')
+if __name__ == "__main__":
+    create_data_lists(
+        train_folders=[
+            r"D:\WatchAndTellCuda\coco\images\train2017",
+            r"D:\WatchAndTellCuda\coco\images\val2017",
+        ],
+        test_folders=["SR/BSDS100", "SR/Set5", "SR/Set14"],
+        min_size=100,
+        output_folder="./",
+    )

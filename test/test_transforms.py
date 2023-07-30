@@ -68,23 +68,35 @@ def image_transform_tensor(tensor_config):
 
 def test_image_transform_initialization_pil(pil_transform):
     """Tests the initialization of the Image Transform."""
-    assert isinstance(pil_transform, ImageTransform), "Object is not an ImageTransform instance"
+    assert isinstance(
+        pil_transform, ImageTransform
+    ), "Object is not an ImageTransform instance"
 
 
 def test_image_transform_initialization_tensor(tensor_transform):
     """Tests the initialization of the Image Transform."""
-    assert isinstance(tensor_transform, ImageTransform), "Object is not an ImageTransform instance"
+    assert isinstance(
+        tensor_transform, ImageTransform
+    ), "Object is not an ImageTransform instance"
 
 
 @pytest.mark.parametrize(
     "source,target",
     [
-        ('pil', '[0, 1]'), ('pil', '[-1, 1]'), ('pil', '[0, 255]'),
-        ('[0, 1]', 'pil'), ('[0, 1]', '[-1, 1]'), ('[0, 1]', '[0, 255]'),
-        ('[-1, 1]', 'pil'), ('[-1, 1]', '[0, 1]'), ('[-1, 1]', '[0, 255]')
-    ]
+        ("pil", "[0, 1]"),
+        ("pil", "[-1, 1]"),
+        ("pil", "[0, 255]"),
+        ("[0, 1]", "pil"),
+        ("[0, 1]", "[-1, 1]"),
+        ("[0, 1]", "[0, 255]"),
+        ("[-1, 1]", "pil"),
+        ("[-1, 1]", "[0, 1]"),
+        ("[-1, 1]", "[0, 255]"),
+    ],
 )
-def test_image_conversion(pil_transform, image_pil, image_0_1, image_minus1_1, source, target):
+def test_image_conversion(
+    pil_transform, image_pil, image_0_1, image_minus1_1, source, target
+):
     """Tests the conversion method."""
 
     img = None
@@ -97,10 +109,14 @@ def test_image_conversion(pil_transform, image_pil, image_0_1, image_minus1_1, s
 
     converted_img = pil_transform.convert_image(img=img, source=source, target=target)
 
-    if target == 'pil':
-        assert isinstance(converted_img, Image.Image), f'Should be PIL Image, but got {type(converted_img)}'
+    if target == "pil":
+        assert isinstance(
+            converted_img, Image.Image
+        ), f"Should be PIL Image, but got {type(converted_img)}"
     else:
-        assert isinstance(converted_img, tf.Tensor), f'Should be Tensor, but got {type(converted_img)}'
+        assert isinstance(
+            converted_img, tf.Tensor
+        ), f"Should be Tensor, but got {type(converted_img)}"
 
 
 def test_transform_call(pil_transform, tensor_transform, image_pil):

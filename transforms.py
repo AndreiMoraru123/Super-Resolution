@@ -13,7 +13,14 @@ class ImageTransform(object):
     Image transformation pipeline.
     """
 
-    def __init__(self, split: str, crop_size: int, scaling_factor: int, lr_img_type: str, hr_img_type: str):
+    def __init__(
+        self,
+        split: str,
+        crop_size: int,
+        scaling_factor: int,
+        lr_img_type: str,
+        hr_img_type: str,
+    ):
         """
         :param split: one of 'train' or 'test'
         :param crop_size: crop size of HR images
@@ -30,19 +37,24 @@ class ImageTransform(object):
         self.rgb_weights = tf.constant([65.481, 128.553, 24.966], dtype=tf.float32)
 
         # CHW
-        self.imagenet_mean_cpu = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)[None, None, :]
-        self.imagenet_std_cpu = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)[None, None, :]
+        self.imagenet_mean_cpu = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)[
+            None, None, :
+        ]
+        self.imagenet_std_cpu = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)[
+            None, None, :
+        ]
         # NHWC
-        self.imagenet_mean = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)[None, None, None, :]
-        self.imagenet_std = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)[None, None, None, :]
+        self.imagenet_mean = tf.constant([0.485, 0.456, 0.406], dtype=tf.float32)[
+            None, None, None, :
+        ]
+        self.imagenet_std = tf.constant([0.229, 0.224, 0.225], dtype=tf.float32)[
+            None, None, None, :
+        ]
 
-        assert self.split in {'train', 'test'}
+        assert self.split in {"train", "test"}
 
     def convert_image(
-        self,
-        img: Union[Image.Image, tf.Tensor],
-        source: str,
-        target: str
+        self, img: Union[Image.Image, tf.Tensor], source: str, target: str
     ) -> Union[Image.Image, tf.Tensor]:
         """
         Convert an image from a source format to a target format.
@@ -55,45 +67,63 @@ class ImageTransform(object):
         :return: converted image
         """
 
-        assert source in {'pil', '[0, 1]', '[-1, 1]'}, "Cannot convert from source format %s!" % source
-        assert target in {'pil', '[0, 255]', '[0, 1]', '[-1, 1]', 'imagenet-norm',
-                          'y-channel'}, "Cannot convert to target format %s!" % target
+        assert source in {"pil", "[0, 1]", "[-1, 1]"}, (
+            "Cannot convert from source format %s!" % source
+        )
+        assert target in {
+            "pil",
+            "[0, 255]",
+            "[0, 1]",
+            "[-1, 1]",
+            "imagenet-norm",
+            "y-channel",
+        }, (
+            "Cannot convert to target format %s!" % target
+        )
 
         # Convert from source to [0, 1]
-        if source == 'pil':
+        if source == "pil":
             img = tf.convert_to_tensor(np.array(img), dtype=tf.float32) / 255.0
-        elif source == '[0, 1]':
+        elif source == "[0, 1]":
             pass
-        elif source == '[-1, 1]':
-            img = (img + 1.) / 2.
+        elif source == "[-1, 1]":
+            img = (img + 1.0) / 2.0
 
         # Convert from [0, 1] to target
-        if target == 'pil':
+        if target == "pil":
             img = tf.keras.preprocessing.image.array_to_img(img)
-        elif target == '[0, 255]':
-            img = 255. * img
-        elif target == '[0, 1]':
+        elif target == "[0, 255]":
+            img = 255.0 * img
+        elif target == "[0, 1]":
             pass  # already in [0, 1]
-        elif target == '[-1, 1]':
-            img = 2. * img - 1
-        elif target == 'imagenet-norm':
+        elif target == "[-1, 1]":
+            img = 2.0 * img - 1
+        elif target == "imagenet-norm":
             if len(img.shape) == 3:
                 img = (img - self.imagenet_mean_cpu) / self.imagenet_std_cpu
             elif len(img.shape) == 4:
                 img = (img - self.imagenet_mean) / self.imagenet_std
-        elif target == 'y-channel':
-            img = tf.tensordot(img[:, 4:-4, 4:-4, :] * 255, self.rgb_weights, axes=[[3], [0]]) / 255. + 16.
+        elif target == "y-channel":
+            img = (
+                tf.tensordot(
+                    img[:, 4:-4, 4:-4, :] * 255, self.rgb_weights, axes=[[3], [0]]
+                )
+                / 255.0
+                + 16.0
+            )
 
         return img
 
-    def __call__(self, img: Image.Image) -> Tuple[Union[Image.Image, tf.Tensor], Union[Image.Image, tf.Tensor]]:
+    def __call__(
+        self, img: Image.Image
+    ) -> Tuple[Union[Image.Image, tf.Tensor], Union[Image.Image, tf.Tensor]]:
         """
         :param img: a PIL source image from which the HR image will be cropped + down-sampled to create the LR image
         :return: LR and HR images in the specified format
         """
 
         # Crop
-        if self.split == 'train':
+        if self.split == "train":
             # Take a random fixed-size crop of the image, which will serve as the high-resolution (HR) image
             left = random.randint(1, img.width - self.crop_size)
             top = random.randint(1, img.height - self.crop_size)
@@ -111,16 +141,21 @@ class ImageTransform(object):
             hr_img = img.crop((left, top, right, bottom))
 
         # Downsize this crop to obtain a low-resolution version of it
-        lr_img = hr_img.resize((int(hr_img.width / self.scaling_factor),
-                                int(hr_img.height / self.scaling_factor)),
-                               Image.BICUBIC)
+        lr_img = hr_img.resize(
+            (
+                int(hr_img.width / self.scaling_factor),
+                int(hr_img.height / self.scaling_factor),
+            ),
+            Image.BICUBIC,
+        )
 
         # Sanity check
-        assert (hr_img.width == lr_img.width * self.scaling_factor) and \
-               (hr_img.height == lr_img.height * self.scaling_factor)
+        assert (hr_img.width == lr_img.width * self.scaling_factor) and (
+            hr_img.height == lr_img.height * self.scaling_factor
+        )
 
         # Convert the LR and HR image to the required type
-        lr_img = self.convert_image(lr_img, source='pil', target=self.lr_img_type)
-        hr_img = self.convert_image(hr_img, source='pil', target=self.hr_img_type)
+        lr_img = self.convert_image(lr_img, source="pil", target=self.lr_img_type)
+        hr_img = self.convert_image(hr_img, source="pil", target=self.hr_img_type)
 
         return lr_img, hr_img

@@ -25,7 +25,7 @@ class Evaluator:
         scaling_factor: int = 4,
         low_res_image_type: str = "imagenet-norm",
         high_res_image_type: str = "[-1, 1]",
-        test_data_name: str = "dummy"
+        test_data_name: str = "dummy",
     ):
         """
         :param resnet: the SRResNet TF model to be evaluated
@@ -67,8 +67,12 @@ class Evaluator:
         """evaluates the model using peak signal-to-noise ratio and structural similarity."""
 
         for _, (low_res_images, high_res_images) in enumerate(self.dataset):
-            super_res_images_resnet = self.resnet_inference(tf.expand_dims(low_res_images, axis=0))['output_0']
-            super_res_images_srgan = self.generator_inference(tf.expand_dims(low_res_images, axis=0))['output_0']
+            super_res_images_resnet = self.resnet_inference(
+                tf.expand_dims(low_res_images, axis=0)
+            )["output_0"]
+            super_res_images_srgan = self.generator_inference(
+                tf.expand_dims(low_res_images, axis=0)
+            )["output_0"]
 
             super_res_images_resnet_y = self.transform.convert_image(
                 super_res_images_resnet, source="[-1, 1]", target="y-channel"
@@ -81,7 +85,9 @@ class Evaluator:
             super_res_images_srgan_y = tf.squeeze(super_res_images_srgan_y, axis=0)
 
             high_res_images_y = self.transform.convert_image(
-                tf.expand_dims(high_res_images, axis=0), source="[-1, 1]", target="y-channel"
+                tf.expand_dims(high_res_images, axis=0),
+                source="[-1, 1]",
+                target="y-channel",
             )
             high_res_images_y = tf.squeeze(high_res_images_y, axis=0)
 
