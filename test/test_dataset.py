@@ -34,7 +34,7 @@ def dataset_config(json_path):
 
     config = {
         'data_folder': json_path,
-        "split": "test",
+        "split": "train",
         "crop_size": 96,
         "scaling_factor": 4,
         "low_res_img_type": "[0, 255]",
