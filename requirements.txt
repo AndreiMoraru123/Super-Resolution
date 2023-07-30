@@ -5,3 +5,4 @@ pillow~=9.4.0
 python-dotenv~=1.0.0
 tensorboard~=2.12.3
 colorama~=0.4.4
+scikit-image~=0.20.0

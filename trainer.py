@@ -37,7 +37,7 @@ class Trainer:
         Initializes the trainer with the given architecture.
 
         :param architecture: Architecture (model + optimizer + loss)
-        :param data_folder: folder in which the data is stor
+        :param data_folder: folder in which the train data is stored
         :param crop_size: cropping size for transforms during training
         :param scaling_factor: up-scaling factor for higher resolution
         :param low_res_image_type: low resolution image type for transform
@@ -185,20 +185,13 @@ class Trainer:
         :param high_res_img_type: the format for the HR image supplied to the model
         :param test_data_name: if this is the 'test' split, which test dataset? (for example, "Set14")
         """
-        assert split in {"train", "test"}
-        if split == "test" and not test_data_name:
-            raise ValueError("Please provide the name of the test dataset!")
+        assert split == "train"
+
         assert low_res_img_type in {"[0, 255]", "[0, 1]", "[-1, 1]", "imagenet-norm"}
         assert high_res_img_type in {"[0, 255]", "[0, 1]", "[-1, 1]", "imagenet-norm"}
 
-        if split == "train":
-            with open(os.path.join(data_folder, "train_images.json"), "r") as f:
-                images = json.load(f)
-        else:
-            with open(
-                os.path.join(data_folder, test_data_name + "_test_images.json"), "r"
-            ) as f:
-                images = json.load(f)
+        with open(os.path.join(data_folder, "train_images.json"), "r") as f:
+            images = json.load(f)
 
         transform = ImageTransform(
             split=split,

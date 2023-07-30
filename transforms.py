@@ -81,7 +81,7 @@ class ImageTransform(object):
                 img = (img - self.imagenet_mean_cpu) / self.imagenet_std_cpu
             elif len(img.shape) == 4:
                 img = (img - self.imagenet_mean) / self.imagenet_std
-        elif target == 'y_channel':
+        elif target == 'y-channel':
             img = tf.tensordot(img[:, 4:-4, 4:-4, :] * 255, self.rgb_weights, axes=[[3], [0]]) / 255. + 16.
 
         return img
