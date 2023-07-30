@@ -22,7 +22,7 @@ The code itself is heavily commented and you can get a feel for how super-resolu
 
 ## Overfitting on one image
 
-- **Top-Left**: Bicupic Up-sampling
+- **Top-Left**: Bicubic Up-sampling
 - **Top-Right**: Super Resolution ResNet
 - **Bottom-Left**: Super Resolution GAN
 - **Bottom-Right**: Original High Resolution
