@@ -11,7 +11,7 @@ from model import SuperResolutionResNet, Generator, Discriminator, TruncatedVGG1
 load_dotenv()
 
 # Data parameters
-data_folder = './'  # folder with JSON data files
+data_folder = "./"  # folder with JSON data files
 crop_size = 96  # crop size of target HR images
 scaling_factor = 4  # the input LR images will be down-sampled from the target HR images by this factor
 
@@ -52,46 +52,70 @@ def main(architecture_type: str = "resnet"):
     loss_fn = tf.keras.losses.MeanSquaredError()
 
     if architecture_type == "resnet":
-        model = SuperResolutionResNet(large_kernel_size=large_kernel_size, small_kernel_size=small_kernel_size,
-                                      n_channels=n_channels, n_blocks=n_blocks, scaling_factor=scaling_factor)
-        architecture = ResNetArchitecture(model=model, optimizer=optimizer, loss_fn=loss_fn)
+        model = SuperResolutionResNet(
+            large_kernel_size=large_kernel_size,
+            small_kernel_size=small_kernel_size,
+            n_channels=n_channels,
+            n_blocks=n_blocks,
+            scaling_factor=scaling_factor,
+        )
+        architecture = ResNetArchitecture(
+            model=model, optimizer=optimizer, loss_fn=loss_fn
+        )
 
     elif architecture_type == "gan":
-        generator = Generator(large_kernel_size=large_kernel_size,
-                              small_kernel_size=small_kernel_size,
-                              n_channels=n_channels,
-                              n_blocks=n_blocks,
-                              scaling_factor=scaling_factor)
+        generator = Generator(
+            large_kernel_size=large_kernel_size,
+            small_kernel_size=small_kernel_size,
+            n_channels=n_channels,
+            n_blocks=n_blocks,
+            scaling_factor=scaling_factor,
+        )
 
         generator.initialize_with_srresnet(srresnet_checkpoint=srresnet_checkpoint)
 
-        discriminator = Discriminator(kernel_size=kernel_size_d,
-                                      n_channels=n_channels_d,
-                                      n_blocks=n_blocks_d,
-                                      fc_size=fc_size_d)
+        discriminator = Discriminator(
+            kernel_size=kernel_size_d,
+            n_channels=n_channels_d,
+            n_blocks=n_blocks_d,
+            fc_size=fc_size_d,
+        )
 
         adversarial_loss = tf.keras.losses.BinaryCrossentropy()
 
         optimizer_d = tf.keras.optimizers.Adam(learning_rate=lr)
 
-        transform = ImageTransform(split="train",
-                                   crop_size=crop_size,
-                                   lr_img_type='imagenet-norm',
-                                   hr_img_type='[-1, 1]',
-                                   scaling_factor=scaling_factor)
+        transform = ImageTransform(
+            split="train",
+            crop_size=crop_size,
+            lr_img_type="imagenet-norm",
+            hr_img_type="[-1, 1]",
+            scaling_factor=scaling_factor,
+        )
 
         truncated_vgg19 = TruncatedVGG19(i=vgg19_j, j=vgg19_j)
 
-        architecture = GANArchitecture(gen_model=generator, dis_model=discriminator,
-                                       gen_optimizer=optimizer, dis_optimizer=optimizer_d,
-                                       content_loss=loss_fn, adversarial_loss=adversarial_loss,
-                                       transform=transform, vgg=truncated_vgg19)
+        architecture = GANArchitecture(
+            gen_model=generator,
+            dis_model=discriminator,
+            gen_optimizer=optimizer,
+            dis_optimizer=optimizer_d,
+            content_loss=loss_fn,
+            adversarial_loss=adversarial_loss,
+            transform=transform,
+            vgg=truncated_vgg19,
+        )
     else:
         raise NotImplementedError("Model architecture not implemented")
 
     trainer = Trainer(architecture=architecture, data_folder=data_folder)
-    trainer.train(start_epoch=start_epoch, epochs=epochs, batch_size=batch_size, print_freq=print_freq)
+    trainer.train(
+        start_epoch=start_epoch,
+        epochs=epochs,
+        batch_size=batch_size,
+        print_freq=print_freq,
+    )
 
 
 if __name__ == "__main__":
-    main(architecture_type="gan")
+    main(architecture_type="resnet")

@@ -1,6 +1,8 @@
 # standard imports
 import os
 import json
+import shutil
+import logging
 
 # third-party imports
 import tensorflow as tf  # type: ignore
@@ -13,6 +15,10 @@ from PIL import Image  # type: ignore
 from transforms import ImageTransform
 from architecture import Architecture, ResNetArchitecture, GANArchitecture
 
+# logging house-keeping
+init(autoreset=True)
+logging.basicConfig(level=logging.INFO)
+
 
 class Trainer:
     """Utility class to train super resolution models."""
@@ -23,13 +29,20 @@ class Trainer:
         data_folder: str,
         crop_size: int = 96,
         scaling_factor: int = 4,
-        low_res_image_type: str = 'imagenet-norm',
-        high_res_image_type: str = '[-1, 1]'
+        low_res_image_type: str = "imagenet-norm",
+        high_res_image_type: str = "[-1, 1]",
+        log_dir: str = "logs",
     ):
         """
         Initializes the trainer with the given architecture.
 
         :param architecture: Architecture (model + optimizer + loss)
+        :param data_folder: folder in which the data is stor
+        :param crop_size: cropping size for transforms during training
+        :param scaling_factor: up-scaling factor for higher resolution
+        :param low_res_image_type: low resolution image type for transform
+        :param high_res_image_type: high resolution image type for transform
+        :param log_dir: directory location for TensorBoard logging
         """
         self.architecture = architecture
         self.data_folder = data_folder
@@ -37,23 +50,45 @@ class Trainer:
         self.scaling_factor = scaling_factor
         self.low_res_image_type = low_res_image_type
         self.high_res_image_type = high_res_image_type
-        self.dataset = self.create_dataset(data_folder=data_folder, crop_size=crop_size,
-                                           high_res_img_type=high_res_image_type,
-                                           low_res_img_type=low_res_image_type,
-                                           scaling_factor=scaling_factor,
-                                           split="train")
+        self.log_dir = log_dir
+
+        if os.path.exists(log_dir):
+            logging.info(f"{Fore.YELLOW}Flushing Logs")
+            shutil.rmtree(log_dir)
+
+        logging.info(f"{Fore.CYAN}Creating Summary Writer")
+        self.summary_writer = tf.summary.create_file_writer(log_dir)
+
+        logging.info(f"{Fore.MAGENTA}Creating Dataset")
+        self.dataset = self.create_dataset(
+            data_folder=data_folder,
+            crop_size=crop_size,
+            high_res_img_type=high_res_image_type,
+            low_res_img_type=low_res_image_type,
+            scaling_factor=scaling_factor,
+            split="train",
+        )
+        logging.info(f"{Fore.GREEN}Compiling Model")
         self.compile()
 
     def compile(self):
         """Compiles the model with the optimizer and loss criterion."""
 
         if isinstance(self.architecture, GANArchitecture):
-            self.architecture.model.compile(optimizer=self.architecture.optimizer, loss=self.architecture.loss_fn)
-            self.architecture.model2.compile(optimizer=self.architecture.optimizer2, loss=self.architecture.loss_fn2)
+            self.architecture.model.compile(
+                optimizer=self.architecture.optimizer, loss=self.architecture.loss_fn
+            )
+            self.architecture.model2.compile(
+                optimizer=self.architecture.optimizer2, loss=self.architecture.loss_fn2
+            )
         elif isinstance(self.architecture, ResNetArchitecture):
-            self.architecture.model.compile(optimizer=self.architecture.optimizer, loss=self.architecture.loss_fn)
+            self.architecture.model.compile(
+                optimizer=self.architecture.optimizer, loss=self.architecture.loss_fn
+            )
         else:
-            raise NotImplementedError("Trainer not defined for this type of architecture")
+            raise NotImplementedError(
+                "Trainer not defined for this type of architecture"
+            )
 
     def save_checkpoint(self, name: str, epoch: int):
         """
@@ -63,7 +98,11 @@ class Trainer:
         :param epoch: the given epoch for which to save the model.
         """
 
-        @tf.function(input_signature=[tf.TensorSpec(shape=[None, None, None, 3], dtype=tf.float32)])
+        @tf.function(
+            input_signature=[
+                tf.TensorSpec(shape=[None, None, None, 3], dtype=tf.float32)
+            ]
+        )
         def serving_fn(image_batch):
             """
             Serving function for saving the model.
@@ -73,11 +112,13 @@ class Trainer:
             """
             return self.architecture.model(image_batch)
 
-        tf.saved_model.save(self.architecture.model,
-                            export_dir=f"{name}_{epoch}/",
-                            signatures=serving_fn)
+        tf.saved_model.save(
+            self.architecture.model,
+            export_dir=f"{name}_{epoch}/",
+            signatures=serving_fn,
+        )
 
-    def train(self, start_epoch: int,  epochs: int, batch_size: int, print_freq: int):
+    def train(self, start_epoch: int, epochs: int, batch_size: int, print_freq: int):
         """
         Train the given model architecture.
 
@@ -95,22 +136,33 @@ class Trainer:
                 low_res_images = tf.dtypes.cast(low_res_images, tf.float32)
                 high_res_imgs = tf.dtypes.cast(high_res_imgs, tf.float32)
 
-                loss = self.architecture.train_step(low_res_images=low_res_images,
-                                                    high_res_images=high_res_imgs)
+                loss = self.architecture.train_step(
+                    low_res_images=low_res_images, high_res_images=high_res_imgs
+                )
 
-                if isinstance(loss, tuple):
-                    gen_loss, dis_loss = loss
-                    if i % print_freq == 0:
-                        print(f'Epoch: [{epoch}][{i}/{epochs}]----'
-                              f'Generator Loss {gen_loss:.4f}----'
-                              f'Discriminator Loss {dis_loss:.4f}')
-                else:
-                    if i % print_freq == 0:
-                        print(f'Epoch: [{epoch}][{i}/{epochs}]----'
-                              f'Loss {loss:.4f}')
+                with self.summary_writer.as_default():
+                    if isinstance(loss, tuple):
+                        gen_loss, dis_loss = loss
+                        if i % print_freq == 0:
+                            logging.info(
+                                f"{Fore.GREEN}Epoch: [{epoch}][{i}/{epochs}]----"
+                                f"{Fore.YELLOW}Generator Loss {gen_loss:.4f}----"
+                                f"{Fore.CYAN}Discriminator Loss {dis_loss:.4f}"
+                            )
+                            tf.summary.scalar("Generator Loss", gen_loss, step=i)
+                            tf.summary.scalar("Discriminator Loss", dis_loss, step=i)
+                    else:
+                        if i % print_freq == 0:
+                            logging.info(
+                                f"{Fore.GREEN}Epoch: [{epoch}][{i}/{epochs}]----"
+                                f"{Fore.BLUE}Loss {loss:.4f}"
+                            )
+                            tf.summary.scalar("Loss", loss, step=i)
 
             if (epoch + 1) % 100_000 == 0:
-                self.save_checkpoint(name=self.architecture.model.__class__.__name__, epoch=epoch)
+                self.save_checkpoint(
+                    name=self.architecture.model.__class__.__name__, epoch=epoch
+                )
 
     @staticmethod
     def create_dataset(
@@ -120,7 +172,7 @@ class Trainer:
         scaling_factor: int,
         low_res_img_type: str,
         high_res_img_type: str,
-        test_data_name: str = '',
+        test_data_name: str = "",
     ) -> tf.data.Dataset:
         """
         Create a Super Resolution (SR) dataset using TensorFlow's data API.
@@ -133,36 +185,44 @@ class Trainer:
         :param high_res_img_type: the format for the HR image supplied to the model
         :param test_data_name: if this is the 'test' split, which test dataset? (for example, "Set14")
         """
-        assert split in {'train', 'test'}
-        if split == 'test' and not test_data_name:
+        assert split in {"train", "test"}
+        if split == "test" and not test_data_name:
             raise ValueError("Please provide the name of the test dataset!")
-        assert low_res_img_type in {'[0, 255]', '[0, 1]', '[-1, 1]', 'imagenet-norm'}
-        assert high_res_img_type in {'[0, 255]', '[0, 1]', '[-1, 1]', 'imagenet-norm'}
+        assert low_res_img_type in {"[0, 255]", "[0, 1]", "[-1, 1]", "imagenet-norm"}
+        assert high_res_img_type in {"[0, 255]", "[0, 1]", "[-1, 1]", "imagenet-norm"}
 
-        if split == 'train':
-            with open(os.path.join(data_folder, 'train_images.json'), 'r') as f:
+        if split == "train":
+            with open(os.path.join(data_folder, "train_images.json"), "r") as f:
                 images = json.load(f)
         else:
-            with open(os.path.join(data_folder, test_data_name + '_test_images.json'), 'r') as f:
+            with open(
+                os.path.join(data_folder, test_data_name + "_test_images.json"), "r"
+            ) as f:
                 images = json.load(f)
 
-        transform = ImageTransform(split=split,
-                                   crop_size=crop_size,
-                                   lr_img_type=low_res_img_type,
-                                   hr_img_type=high_res_img_type,
-                                   scaling_factor=scaling_factor)
+        transform = ImageTransform(
+            split=split,
+            crop_size=crop_size,
+            lr_img_type=low_res_img_type,
+            hr_img_type=high_res_img_type,
+            scaling_factor=scaling_factor,
+        )
 
         def generator():
             """Data generator for the TensorFlow Dataset."""
 
             for image_path in images:
-                img = Image.open(image_path, mode='r')
-                img = img.convert('RGB')
+                img = Image.open(image_path, mode="r")
+                img = img.convert("RGB")
                 # Transform
                 lr_img, hr_img = transform(img)
                 # Generate
                 yield lr_img, hr_img
 
-        return tf.data.Dataset.from_generator(generator=generator, output_signature=(
-            tf.TensorSpec(shape=(None, None, 3), dtype=tf.float32),
-            tf.TensorSpec(shape=(None, None, 3), dtype=tf.float32)))
+        return tf.data.Dataset.from_generator(
+            generator=generator,
+            output_signature=(
+                tf.TensorSpec(shape=(None, None, 3), dtype=tf.float32),
+                tf.TensorSpec(shape=(None, None, 3), dtype=tf.float32),
+            ),
+        )
