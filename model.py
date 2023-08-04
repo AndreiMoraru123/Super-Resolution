@@ -3,9 +3,9 @@ import math
 from typing import List, Optional
 
 # third-party imports
-import tensorflow as tf  # type: ignore
-from tensorflow.keras import layers, Model  # type: ignore
-from tensorflow.keras.applications import VGG19  # type: ignore
+import tensorflow as tf
+from tensorflow.keras import layers, Model
+from tensorflow.keras.applications import VGG19
 
 
 class ConvolutionalBlock(layers.Layer):

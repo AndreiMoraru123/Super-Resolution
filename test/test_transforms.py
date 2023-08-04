@@ -1,8 +1,8 @@
 # third-party imports
-import pytest  # type: ignore
+import pytest
 import numpy as np
-import tensorflow as tf  # type: ignore
-from PIL import Image  # type: ignore
+import tensorflow as tf
+from PIL import Image
 
 # module imports
 from transforms import ImageTransform

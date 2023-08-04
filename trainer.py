@@ -5,9 +5,9 @@ import shutil
 import logging
 
 # third-party imports
-import tensorflow as tf  # type: ignore
-from colorama import Fore, init  # type: ignore
-from PIL import Image  # type: ignore
+import tensorflow as tf
+from colorama import Fore, init
+from PIL import Image
 
 # module imports
 from transforms import ImageTransform

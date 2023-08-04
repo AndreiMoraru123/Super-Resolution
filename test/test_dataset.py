@@ -3,9 +3,9 @@ import json
 from unittest.mock import patch, MagicMock
 
 # third party imports
-import pytest  # type: ignore
-import tensorflow as tf  # type: ignore
-from PIL import Image  # type: ignore
+import pytest
+import tensorflow as tf
+from PIL import Image
 
 # module imports
 from trainer import Trainer

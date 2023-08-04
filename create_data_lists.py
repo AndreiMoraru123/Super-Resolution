@@ -4,7 +4,7 @@ import json
 from typing import List
 
 # third-party imports
-from PIL import Image  # type: ignore
+from PIL import Image
 
 
 def create_data_lists(

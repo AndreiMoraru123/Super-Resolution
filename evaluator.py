@@ -4,9 +4,9 @@ import json
 
 # third-party imports
 import tensorflow as tf
-from tensorflow.keras import Model  # type: ignore
-from tensorflow.keras.metrics import Mean  # type: ignore
-from PIL import Image, ImageDraw, ImageFont  # type: ignore
+from tensorflow.keras import Model
+from tensorflow.keras.metrics import Mean
+from PIL import Image, ImageDraw, ImageFont
 from skimage.metrics import peak_signal_noise_ratio, structural_similarity
 
 # module imports

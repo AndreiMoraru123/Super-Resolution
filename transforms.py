@@ -4,8 +4,8 @@ from typing import Tuple, Union
 
 # third-party imports
 import numpy as np
-import tensorflow as tf  # type: ignore
-from PIL import Image  # type: ignore
+import tensorflow as tf
+from PIL import Image
 
 
 class ImageTransform(object):

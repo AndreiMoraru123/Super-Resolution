@@ -4,10 +4,10 @@ from abc import ABC, abstractmethod
 
 # third-party imports
 import tensorflow as tf
-from tensorflow.keras import Model  # type: ignore
-from tensorflow.keras.losses import Loss  # type: ignore
-from tensorflow.keras.optimizers import Optimizer  # type: ignore
-from PIL import Image  # type: ignore
+from tensorflow.keras import Model
+from tensorflow.keras.losses import Loss
+from tensorflow.keras.optimizers import Optimizer
+from PIL import Image
 
 # module imports
 from transforms import ImageTransform
